@@ -110,8 +110,9 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .stack > * + * { margin-top: 12px; }
 
 /* title */
-.hero { text-align: center; padding: 20px 0 8px; }
-.hero .icons { font-size: 54px; letter-spacing: 6px; }
+.hero { text-align: center; padding: 6px 0 8px; }
+.hero h1 { margin-top: 2px; }
+.hero .icons { font-size: 40px; letter-spacing: 6px; }
 .field { display: block; margin: 12px 0; }
 .field input {
   display: block; width: 100%; min-height: var(--tap); font-size: 20px; padding: 8px 12px;
@@ -132,6 +133,11 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .seg .opt .nt.t-env { color: var(--env); }
 .seg .opt .nt.t-region { color: var(--region); }
 .seg .opt.off .nt.t-profit, .seg .opt.off .nt.t-env, .seg .opt.off .nt.t-region { color: var(--off-ink); }
+.rules { margin: 0 0 10px; padding: 8px 14px 8px 2.2em; font-size: 16px; }
+.rules li + li { margin-top: 2px; }
+.title-form .field { margin: 6px 0; }
+@media (min-width: 700px) { .title-form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; } .title-form .field:first-child { grid-column: 1 / -1; } }
+.t-p { color: var(--profit); } .t-e { color: var(--env); } .t-r { color: var(--region); }
 .legend { font-size: 14px; color: var(--muted); }
 .legend b.p { color: var(--profit); } .legend b.e { color: var(--env); } .legend b.r { color: var(--region); }
 .seg .opt.off { background: var(--off); color: var(--off-ink); border-style: dashed; }
@@ -342,8 +348,8 @@ const CONFIG = {
   defaultPlot: { crop: 'spinach', pest: 'none', fert: 'none', ship: 'market' },
   howto: [
     { icon: '🟫🟫🟫', title: '3つの畑で、春夏秋冬の1年間', text: '畑は3区画。季節ごとに、区画ごとに作物を選んで植えます。最初の資金は30万円です。' },
-    { icon: '🌱🏠🐛🧪🚚', title: '1つの区画で5つを選ぶ', text: '作物・栽培方法・虫対策・肥料・出荷先を選びます。季節の終わりにイベントカードが1枚引かれ、収穫と売上が決まります。' },
-    { icon: '💰🌏🤝', title: '利益・環境・地域の3つで評価', text: 'もうけだけでなく、環境へのやさしさや地域とのつながりも点数になります。3つのバランスがよい農業を目指そう！' },
+    { icon: '🌱🏠🐛🧪🚚', title: '1つの区画で5つを選ぶ', text: '作物・栽培方法・虫対策・肥料・出荷先を選びます。季節の終わりにイベントカード（台風や害虫など）が1枚引かれ、どれだけとれて、いくらで売れたかが決まります。' },
+    { icon: '💰🌏🤝', title: '利益・環境・地域の3つで評価', text: 'もうけだけでなく、環境へのやさしさや地域とのつながりも点数になります（300点満点）。環境は75点、地域は40点からスタートし、選び方で上がったり下がったりします。3つのバランスがよい農業を目指そう！' },
   ],
 };
 
@@ -509,7 +515,7 @@ function playYear(policy, rngEv, rngMisc) {
  * ========================================================================= */
 function summarize(history) {
   const s = { chemPest: 0, chemFert: 0, compost: 0, unsold: false, processHelped: false, contractCrash: false,
-    built: false, winterPest: false, nonePestLoss: 0, nonePestBase: 0, nonePestPlots: 0 };
+    built: false, winterPest: false, nonePestLoss: 0, nonePestBase: 0, nonePestPlots: 0, regionShip: 0 };
   for (const h of history) {
     const season = seasonId(h.result.seasonIdx);
     if (h.result.unsold) s.unsold = true;
@@ -519,6 +525,7 @@ function summarize(history) {
       if (p.pest === 'chem') s.chemPest++;
       if (p.fert === 'chem') s.chemFert++;
       if (p.fert === 'compost') s.compost++;
+      if (CONFIG.shipOptions[p.ship].region) s.regionShip++;
       if (season === 'winter' && p.pest !== 'none') s.winterPest = true;
       if (p.ship === 'process' && p.yieldRate < p.baseYield - 1e-9) s.processHelped = true;
       if (p.ship === 'contract' && h.result.event === 'crash') s.contractCrash = true;
@@ -543,6 +550,7 @@ const COMMENTS = {
     { when: (s) => s.contractCrash, text: '値崩れのときも、契約出荷で価格が守られました。' },
     { when: (s) => s.built, text: 'ハウスに投資して天候の被害を減らしました。冬の暖房には費用と環境への負担もかかりました。' },
     { when: (s) => s.winterPest, text: '冬は虫が少ないので、虫対策の費用はあまり役に立ちませんでした。' },
+    { when: (s) => s.compost === 0 && s.chemFert === 0 && s.chemPest === 0 && s.regionShip === 0, text: '肥料・虫対策・出荷先をほとんど工夫しなかったため、環境点と地域点がスタートのままでした。選び方を変えると、どの点数が動くか試してみよう。' },
     { when: (s, sc) => sc.P >= 55 && sc.E >= 55 && sc.R >= 55, text: '利益・環境・地域のバランスがとれた経営でした。' },
   ],
   fallback: '大きなかたよりのない経営でした。どの選択がどの点数に効いたか、季節ごとの表で確かめてみよう。',
@@ -651,19 +659,24 @@ function planEffects(g, plan) {
 function sidePanel() {
   const g = state.game;
   const cur = Math.min(g.seasonIdx, 3);
-  const sc = finalScore(g.money, g.env, g.region);
+  // カードをめくる前は、季節の前の状態を表示する（結果を先に見せない）
+  const before = state.screen === 'event' && g.current;
+  const money = before ? g.current.moneyBefore : g.money;
+  const env = before ? g.env - g.current.env : g.env;
+  const region = before ? g.region - g.current.region : g.region;
+  const sc = finalScore(money, env, region);
   const fx = state.screen === 'plan' ? planEffects(g, g.plan) : null;
   const houseN = g.houses.filter(Boolean).length;
   const meters = [
     { name: '利益', color: 'var(--side-profit)', v: sc.P, d: fx ? `この計画で 費用−${fmt(fx.cost)}万円（売上は収穫後）` : `利益 ${signed(sc.profit)}万円` },
-    { name: '環境', color: 'var(--side-env)', v: sc.E, d: fx ? `この計画で 環境ポイント${signed(fx.env)}` : `環境ポイント ${signed(g.env)}` },
-    { name: '地域', color: 'var(--side-region)', v: sc.R, d: fx ? `この計画で 地域ポイント${signed(fx.region)}` : `地域ポイント ${signed(g.region)}` },
+    { name: '環境', color: 'var(--side-env)', v: sc.E, d: fx ? `この計画で 環境ポイント${signed(fx.env)}` : `環境ポイント ${signed(env)}` },
+    { name: '地域', color: 'var(--side-region)', v: sc.R, d: fx ? `この計画で 地域ポイント${signed(fx.region)}` : `地域ポイント ${signed(region)}` },
   ];
   return `<aside class="side" aria-label="いまの状態">
     <div><div class="lbl">季節</div><div class="stepper">${CONFIG.seasons.map((s, i) =>
       `<span class="${i === cur ? 'now' : i < cur ? 'done' : ''}">${s.name}</span>`).join('')}</div></div>
-    <div><div class="lbl">資金</div><div class="money">${fmt(g.money)}<small> 万円</small></div>
-      ${fx ? `<div class="sub">この計画の費用 ${fmt(fx.cost)} → 残り ${fmt(g.money - fx.cost)}</div>` : ''}</div>
+    <div><div class="lbl">資金</div><div class="money">${fmt(money)}<small> 万円</small></div>
+      ${fx ? `<div class="sub">この計画の費用 ${fmt(fx.cost)} → 残り ${fmt(money - fx.cost)}</div>` : ''}</div>
     ${meters.map((m) => `<div class="meter">
       <div class="mh"><span class="mn" style="color:${m.color}">${m.name}</span><span class="ms">${m.v}<small> 点</small></span></div>
       <div class="mbar"><i style="width:${m.v}%;background:${m.color}"></i></div>
@@ -681,7 +694,12 @@ screens.title = () => `
       <h1>農家経営シミュレーション</h1>
       <div class="muted">1年間農家を経営し、「利益」「環境」「地域」のバランスがよい農業を目指そう</div>
     </div>
-    <div class="panel">
+    <ol class="rules panel">
+      <li>春・夏・秋・冬の4回、3つの畑に<b>何を・どうやって育てて・どこに売るか</b>を決めます。</li>
+      <li>季節の終わりに<b>イベントカード</b>（台風・害虫・値段の変化など）を1枚引き、売上が決まります。</li>
+      <li>最後に<b class="t-p">利益</b>・<b class="t-e">環境</b>・<b class="t-r">地域</b>の3つの点数（300点満点）で評価します。</li>
+    </ol>
+    <div class="panel title-form">
       <label class="field">名前（出席番号）
         <input id="name" type="text" autocomplete="off" maxlength="30" placeholder="例：12 山田" value="${esc(state.name)}">
       </label>
@@ -736,6 +754,7 @@ screens.seasonStart = () => {
       }).join('')}</div>
       <div class="small muted">数字はカードの枚数です。多いほど出やすくなります。季節の最後に、この中から1枚引きます。</div>
       <div class="hint">💡 ${CONFIG.seasonHints[s.id]}</div>
+      ${g.seasonIdx === 0 ? `<div class="small muted">点数は 利益0点・環境${CONFIG.score.env.base}点・地域${CONFIG.score.region.base}点 からスタートです。選び方とできごとで上がったり下がったりします。</div>` : ''}
     </div>
     <div class="btns"><button class="btn" data-act="toPlan">計画を立てる</button></div>
   </div>`;
@@ -773,7 +792,7 @@ screens.plan = () => {
     const offSeason = CONFIG.cropOrder.filter((c) => !CONFIG.crops[c].seasons.includes(season));
     const houseItems = [
       { value: false, label: '<ruby>露地<rt>ろじ</rt></ruby>', note: '天候の影響を受ける' },
-      { value: true, label: '🏠 ハウス', note: g.houses[i] ? (season === 'winter' ? '建設済み・暖房2・環境−1' : '建設済み') : `建設${CONFIG.house.buildCost}${season === 'winter' ? '・暖房2・環境−1' : ''}` },
+      { value: true, label: '🏠 ハウス', note: g.houses[i] ? (season === 'winter' ? `建設済み・暖房費${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : '建設済み') : `建設費${CONFIG.house.buildCost}${season === 'winter' ? `・暖房費${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : ''}` },
     ];
     const pestItems = CONFIG.pestOrder.map((k) => { const o = CONFIG.pestOptions[k]; return { value: k, label: o.label, note: costNote(o.cost, o.env, o.note), tone: o.env ? 'env' : '' }; });
     const fertItems = CONFIG.fertOrder.map((k) => { const f = CONFIG.fertOptions[k]; return { value: k, label: f.label, note: costNote(f.cost, f.env, f.yield ? `収量+${pct(f.yield)}` : ''), tone: f.env ? 'env' : '' }; });
@@ -782,7 +801,7 @@ screens.plan = () => {
       <div class="plot-head"><h3>区画${i + 1} ${g.houses[i] ? '🏠' : ''}</h3>
         ${i > 0 ? `<button class="mini" data-act="copyLeft" data-i="${i}">◀ 区画${i}と同じ</button>` : ''}</div>
       <div class="row"><div class="rl">① 作物</div>${segment(g, plan, i, 'crop', cropItems)}
-        <div class="small muted" style="margin-top:2px">${p.crop ? CONFIG.crops[p.crop].note : ''}${offSeason.length ? `　この季節は植えられない：${offSeason.map((c) => CONFIG.crops[c].icon).join('')}` : ''}</div></div>
+        <div class="small muted" style="margin-top:2px">${p.crop ? CONFIG.crops[p.crop].note : ''}${offSeason.length ? `　今は植えられない：${offSeason.map((c) => CONFIG.crops[c].icon).join('')}` : ''}</div></div>
       <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">② 栽培方法</div>${segment(g, plan, i, 'house', houseItems)}</div>
       <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">③ 虫対策</div>${segment(g, plan, i, 'pest', pestItems)}</div>
       <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">④ 肥料</div>${segment(g, plan, i, 'fert', fertItems)}</div>
@@ -792,7 +811,8 @@ screens.plan = () => {
   }).join('');
   const nDirect = countDirect(plan);
   return `<div class="wrap">
-    <h2>${CONFIG.seasons[g.seasonIdx].icon} ${CONFIG.seasons[g.seasonIdx].name}の作付け計画</h2>
+    <h2>${CONFIG.seasons[g.seasonIdx].icon} ${CONFIG.seasons[g.seasonIdx].name}の<ruby>作付<rt>さくづ</rt></ruby>け計画</h2>
+    ${g.seasonIdx === 0 ? `<div class="hint" style="margin-bottom:10px">👆 区画ごとに①〜⑤を1つずつ選び、下の「決定」をおします。同じにしたいときは「◀ 区画○と同じ」が便利。<b>選べないボタンをおすと、理由が出ます。</b></div>` : ''}
     ${season === 'winter' ? `<div class="hint" style="margin-bottom:10px">💡 ${CONFIG.seasonHints.winter}</div>` : ''}
     ${nDirect >= 2 ? `<div class="hint" style="margin-bottom:10px">🛒 直売所に${nDirect}区画出すと、売れ残る確率は${pct(CONFIG.direct.unsoldProb[nDirect])}です（1区画なら${pct(CONFIG.direct.unsoldProb[1])}）。</div>` : ''}
     <div class="plots">${cards}</div>
@@ -801,7 +821,7 @@ screens.plan = () => {
     <div class="legend">色の意味：<b class="p">利益</b>・<b class="e">環境</b>・<b class="r">地域</b></div>
     <div class="money">費用合計 <b>${fmt(total)}</b>万円　残り資金 <b class="${over ? 'bad' : ''}">${fmt(left)}</b>万円</div>
     ${over ? '<div class="bad">資金が足りません。選択を変えてください。</div>' : ''}
-    <button class="btn ${over ? 'off' : ''}" data-act="decide" ${over ? 'data-reason="資金が足りないので決定できません。"' : ''}>決定</button>
+    <button class="btn ${over ? 'off' : ''}" data-act="decide" ${over ? 'data-reason="資金が足りないので決定できません。"' : ''}>決定（カードを引く）</button>
   </div>`;
 };
 
@@ -832,6 +852,20 @@ function plotChips(p) {
   if (!chips.length) chips.push('<span class="chip">被害なし</span>');
   return chips.join('');
 }
+// 結果画面の「気づき」（数値は変えず、なぜそうなったかを1〜2行で示す）
+function seasonLessons(r) {
+  const out = [];
+  const ps = r.plots.filter((p) => !p.empty);
+  const ev = CONFIG.events[r.event];
+  if (ps.some((p) => p.pestLoss > 0 && p.pest === 'none')) out.push('虫対策をしなかった区画が虫に食べられました。防虫ネットなら環境点を下げずに被害を半分にできます。');
+  else if (r.event === 'pest' && ps.some((p) => p.pest !== 'none')) out.push('虫対策をしていたので、害虫の大発生でも被害をおさえられました。');
+  if (ps.some((p) => p.weatherLoss > 0 && !p.house)) out.push(`${ev.name}で露地の作物が被害を受けました。ハウスなら天候の被害を半分にできます（建設費がかかります）。`);
+  if (ev.marketMult && ev.marketMult < 1 && ps.some((p) => p.ship === 'market')) out.push('値崩れで市場の価格が下がりました。契約出荷なら価格が変わりません。');
+  if (ev.marketMult && ev.marketMult > 1 && ps.some((p) => p.ship === 'market')) out.push('価格高騰で、市場に出した作物が高く売れました。市場は値段が上がることも下がることもあります。');
+  if (r.unsold) out.push(`直売所に${r.nDirect}区画出して、売れ残りが出ました。出す区画が多いほど売れ残りやすくなります。`);
+  if (ps.some((p) => p.ship === 'process' && p.yieldRate < p.baseYield - 1e-9)) out.push('加工に回したので、被害を受けた分の一部も売上になりました。');
+  return out.slice(0, 2);
+}
 screens.result = () => {
   const g = state.game;
   const r = g.current;
@@ -856,8 +890,9 @@ screens.result = () => {
         ${rows}
         ${r.bonusMoney ? `<tr><td colspan="4">🍱 給食センターからの依頼（地域+${r.bonusRegion}）</td><td></td><td class="num"><b>+${fmt(r.bonusMoney)}</b></td></tr>` : ''}
       </table>
-      <div class="small muted" style="margin-top:6px">売上 ＝ 基本売上 × 収量 × 価格の倍率（万円）</div>
+      <div class="small muted" style="margin-top:6px">売上 ＝ 基本売上 × <ruby>収量<rt>しゅうりょう</rt></ruby> × 価格の倍率（万円）。収量100%は「ふつうにとれた」、50%は「半分しかとれなかった」という意味です。</div>
     </div>
+    ${seasonLessons(r).length ? `<div class="panel" style="margin-top:12px"><h3>🔍 この季節の気づき</h3><ul class="comments">${seasonLessons(r).map((t) => `<li>${t}</li>`).join('')}</ul></div>` : ''}
     <div class="summary" style="margin-top:12px">
       <div class="box"><div class="k">資金</div><div class="v">${fmt(r.moneyBefore)} → ${fmt(r.money)}</div><div class="${net >= 0 ? 'plus' : 'minus'}">${signed(net)}万円</div></div>
       <div class="box"><div class="k">🌏 環境ポイント</div><div class="v ${r.env > 0 ? 'plus' : r.env < 0 ? 'minus' : ''}">${signed(r.env)}</div><div class="small muted">合計 ${signed(g.env)}</div></div>
@@ -925,6 +960,7 @@ screens.final = () => {
           <div class="small muted">持続可能な農業スコア（300点満点）</div>
           <div class="t">${sc.total}<span style="font-size:22px">点</span></div>
           <div class="rank">🏅 ${sc.rank}</div>
+          ${(() => { const nx = [...CONFIG.ranks].reverse().find((k) => k.min > sc.total); return nx ? `<div class="small muted">あと${nx.min - sc.total}点で「${nx.name}」</div>` : ''; })()}
         </div>
         <div class="panel">
           <h3>ふりかえり</h3>
