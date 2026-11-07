@@ -4,24 +4,34 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>農家経営シミュレーション</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f6f3e8;
+  --bg: #f3f5f7;
   --panel: #ffffff;
-  --ink: #2b2a26;
-  --muted: #6b6759;
-  --line: #ddd6c1;
-  --accent: #2f7d32;
+  --ink: #1c2430;
+  --muted: #5b6676;
+  --line: #d8dee6;
+  --accent: #1c2430;
   --accent-ink: #ffffff;
-  --accent-soft: #e3f1e0;
+  --accent-soft: #e9eef5;
+  --good: #2e7d32;
+  --good-soft: #dcefdc;
   --warn: #b3261e;
   --warn-soft: #fbe5e2;
-  --gold: #b7791f;
-  --profit: #c27c0e;
-  --env: #2f7d32;
-  --region: #1e63b5;
-  --off: #ece9df;
-  --off-ink: #a8a392;
+  --gold: #a35f00;
+  --profit: #b85c00;
+  --env: #2e7d32;
+  --region: #1f5fa8;
+  --side: #1c2430;
+  --side-line: #364152;
+  --side-muted: #9aa6b6;
+  --side-profit: #f0a050;
+  --side-env: #6cc070;
+  --side-region: #6aa8ec;
+  --off: #eceff3;
+  --off-ink: #a3abb7;
   --radius: 14px;
   --tap: 48px;
 }
@@ -29,7 +39,7 @@
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Meiryo", sans-serif;
+  font-family: "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Meiryo", sans-serif;
   font-size: 18px; line-height: 1.55;
   -webkit-tap-highlight-color: transparent;
 }
@@ -43,14 +53,46 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .small { font-size: 15px; }
 .center { text-align: center; }
 
-/* status bar */
-.bar {
-  position: sticky; top: 0; z-index: 10; background: var(--accent); color: var(--accent-ink);
-  display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; justify-content: center;
-  padding: 8px 12px; font-size: 18px; box-shadow: 0 2px 6px rgba(0,0,0,.15);
+/* side panel (C-1) */
+.shell { display: flex; min-height: 100vh; }
+.main { flex: 1 1 auto; min-width: 0; }
+.side {
+  width: 270px; flex-shrink: 0; box-sizing: border-box; background: var(--side); color: #fff;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 20px 18px;
+  display: flex; flex-direction: column; gap: 16px;
 }
-.bar b { font-size: 21px; }
-.bar .sep { opacity: .6; }
+.side .lbl { font-size: 13px; color: var(--side-muted); }
+.stepper { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+.stepper span { text-align: center; padding: 5px 0; border-radius: 6px; border: 1px solid var(--side-line); color: var(--side-muted); font-size: 16px; }
+.stepper span.done { background: var(--side-line); color: #fff; border-color: var(--side-line); }
+.stepper span.now { background: #fff; color: var(--side); font-weight: bold; border-color: #fff; }
+.side .money { font-size: 34px; font-weight: bold; line-height: 1.2; }
+.side .money small { font-size: 16px; font-weight: normal; }
+.side .sub { font-size: 14px; color: #c3cbd6; }
+.meter { border-top: 1px solid var(--side-line); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.meter .mh { display: flex; justify-content: space-between; align-items: baseline; }
+.meter .mn { font-size: 17px; font-weight: bold; }
+.meter .ms { font-size: 26px; font-weight: bold; }
+.meter .ms small { font-size: 13px; color: var(--side-muted); font-weight: normal; }
+.meter .mbar { height: 10px; border-radius: 5px; background: var(--side-line); overflow: hidden; }
+.meter .mbar i { display: block; height: 10px; }
+.meter .md { font-size: 13px; color: #c3cbd6; }
+.side .houses { font-size: 14px; color: #c3cbd6; }
+@media (max-width: 899px) {
+  .shell { flex-direction: column; }
+  .side {
+    width: auto; height: auto; z-index: 10; padding: 8px 14px; overflow: visible;
+    display: grid; grid-template-columns: auto auto 1fr 1fr 1fr; gap: 4px 14px; align-items: center;
+  }
+  .side .lbl, .side .sub, .side .houses, .meter .md { display: none; }
+  .side .money { font-size: 22px; }
+  .stepper { margin-top: 0; gap: 3px; }
+  .stepper span { padding: 2px 6px; font-size: 14px; }
+  .meter { border-top: 0; padding-top: 0; gap: 2px; }
+  .meter .mn { font-size: 14px; }
+  .meter .ms { font-size: 20px; }
+  .meter .mbar, .meter .mbar i { height: 6px; }
+}
 
 /* buttons */
 .btn {
@@ -86,6 +128,12 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .seg .opt .lb { font-size: 17px; font-weight: bold; }
 .seg .opt .nt { font-size: 13px; color: var(--muted); }
 .seg .opt.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.seg .opt .nt.t-profit { color: var(--profit); }
+.seg .opt .nt.t-env { color: var(--env); }
+.seg .opt .nt.t-region { color: var(--region); }
+.seg .opt.off .nt.t-profit, .seg .opt.off .nt.t-env, .seg .opt.off .nt.t-region { color: var(--off-ink); }
+.legend { font-size: 14px; color: var(--muted); }
+.legend b.p { color: var(--profit); } .legend b.e { color: var(--env); } .legend b.r { color: var(--region); }
 .seg .opt.off { background: var(--off); color: var(--off-ink); border-style: dashed; }
 .seg .opt.off .nt { color: var(--off-ink); }
 
@@ -102,7 +150,7 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 
 /* plan */
 .plots { display: grid; grid-template-columns: 1fr; gap: 12px; }
-@media (min-width: 900px) { .plots { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1150px) { .plots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .plot { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
 .plot-head { min-height: 44px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .plot-head h3 { margin: 0; }
@@ -111,10 +159,11 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .row .rl { font-size: 15px; font-weight: bold; color: var(--muted); margin-bottom: 2px; }
 .plot.empty .row.dim { opacity: .55; }
 .foot {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: rgba(255,255,255,.97);
+  position: fixed; left: 270px; right: 0; bottom: 0; z-index: 10; background: rgba(255,255,255,.97);
   border-top: 2px solid var(--line); padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 8px 20px;
   align-items: center; justify-content: center;
 }
+@media (max-width: 899px) { .foot { left: 0; } }
 .foot .money { font-size: 19px; }
 .foot .money b { font-size: 23px; }
 .foot .bad { color: var(--warn); font-weight: bold; }
@@ -138,7 +187,7 @@ h3 { font-size: 19px; margin: 0 0 6px; }
   position: absolute; inset: 0; border-radius: 18px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0,0,0,.18);
 }
-.face.back { background: repeating-linear-gradient(45deg, #2f7d32, #2f7d32 12px, #3a8d3e 12px, #3a8d3e 24px); color: #fff; font-size: 64px; }
+.face.back { background: repeating-linear-gradient(45deg, #1c2430, #1c2430 12px, #2a3546 12px, #2a3546 24px); color: #fff; font-size: 64px; }
 .face.front { background: #fff; border: 4px solid var(--accent); transform: rotateY(180deg); padding: 12px; text-align: center; }
 .face.front .ei { font-size: 84px; line-height: 1.1; }
 .face.front .en { font-size: 26px; font-weight: bold; margin-top: 8px; }
@@ -149,11 +198,11 @@ table { border-collapse: collapse; width: 100%; }
 th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
 th { font-size: 15px; color: var(--muted); font-weight: bold; }
 td.num, th.num { text-align: right; white-space: nowrap; }
-.plus { color: var(--accent); font-weight: bold; }
+.plus { color: var(--good); font-weight: bold; }
 .minus { color: var(--warn); font-weight: bold; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; }
 .chip { font-size: 15px; border-radius: 999px; padding: 1px 8px; background: #f1efe6; white-space: nowrap; }
-.chip.up { background: var(--accent-soft); color: #1d5a20; }
+.chip.up { background: var(--good-soft); color: #1d5a20; }
 .chip.down { background: var(--warn-soft); color: var(--warn); }
 .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
 .summary .box { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; text-align: center; }
@@ -192,7 +241,7 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 /* debug */
 .debug table { font-size: 15px; }
 .debug td, .debug th { border: 1px solid var(--line); }
-.ok { color: var(--accent); font-weight: bold; }
+.ok { color: var(--good); font-weight: bold; }
 .ng { color: var(--warn); font-weight: bold; }
 </style>
 </head>
@@ -588,18 +637,39 @@ function applyPick(g, plan, i, field, value) {
   }
 }
 
-function statusBar() {
+function planEffects(g, plan) {
+  const season = seasonId(g.seasonIdx);
+  let env = 0, region = 0;
+  plan.forEach((p) => {
+    if (!p.crop) return;
+    env += CONFIG.fertOptions[p.fert].env + CONFIG.pestOptions[p.pest].env;
+    if (season === 'winter' && p.house) env += CONFIG.house.heatEnv;
+    region += CONFIG.shipOptions[p.ship].region;
+  });
+  return { cost: planCost(ctxOf(g), plan), env, region };
+}
+function sidePanel() {
   const g = state.game;
-  if (!g) return '';
-  const s = CONFIG.seasons[Math.min(g.seasonIdx, 3)];
+  const cur = Math.min(g.seasonIdx, 3);
+  const sc = finalScore(g.money, g.env, g.region);
+  const fx = state.screen === 'plan' ? planEffects(g, g.plan) : null;
   const houseN = g.houses.filter(Boolean).length;
-  return `<div class="bar">
-    <span>${s.icon} <b>${s.name}</b>（${Math.min(g.seasonIdx, 3) + 1}/4）</span><span class="sep">|</span>
-    <span>💰 資金 <b>${fmt(g.money)}</b>万円</span><span class="sep">|</span>
-    <span>🌏 環境 <b>${signed(g.env)}</b></span><span class="sep">|</span>
-    <span>🤝 地域 <b>${signed(g.region)}</b></span>
-    ${houseN ? `<span class="sep">|</span><span>🏠×${houseN}</span>` : ''}
-  </div>`;
+  const meters = [
+    { name: '利益', color: 'var(--side-profit)', v: sc.P, d: fx ? `この計画で 費用−${fmt(fx.cost)}万円（売上は収穫後）` : `利益 ${signed(sc.profit)}万円` },
+    { name: '環境', color: 'var(--side-env)', v: sc.E, d: fx ? `この計画で 環境ポイント${signed(fx.env)}` : `環境ポイント ${signed(g.env)}` },
+    { name: '地域', color: 'var(--side-region)', v: sc.R, d: fx ? `この計画で 地域ポイント${signed(fx.region)}` : `地域ポイント ${signed(g.region)}` },
+  ];
+  return `<aside class="side" aria-label="いまの状態">
+    <div><div class="lbl">季節</div><div class="stepper">${CONFIG.seasons.map((s, i) =>
+      `<span class="${i === cur ? 'now' : i < cur ? 'done' : ''}">${s.name}</span>`).join('')}</div></div>
+    <div><div class="lbl">資金</div><div class="money">${fmt(g.money)}<small> 万円</small></div>
+      ${fx ? `<div class="sub">この計画の費用 ${fmt(fx.cost)} → 残り ${fmt(g.money - fx.cost)}</div>` : ''}</div>
+    ${meters.map((m) => `<div class="meter">
+      <div class="mh"><span class="mn" style="color:${m.color}">${m.name}</span><span class="ms">${m.v}<small> 点</small></span></div>
+      <div class="mbar"><i style="width:${m.v}%;background:${m.color}"></i></div>
+      <div class="md">${m.d}</div></div>`).join('')}
+    ${houseN ? `<div class="houses">🏠 ハウス ${houseN}棟</div>` : ''}
+  </aside>`;
 }
 
 const screens = {};
@@ -654,7 +724,7 @@ screens.seasonStart = () => {
   const s = CONFIG.seasons[g.seasonIdx];
   const deck = CONFIG.deck[s.id];
   const crops = CONFIG.cropOrder.filter((c) => CONFIG.crops[c].seasons.includes(s.id));
-  return `${statusBar()}<div class="wrap" style="max-width:860px">
+  return `<div class="wrap" style="max-width:860px">
     <h1 class="center">${s.icon} ${s.name}がはじまりました</h1>
     <div class="panel stack">
       <h3>この季節に植えられる作物</h3>
@@ -676,7 +746,7 @@ function segment(g, plan, i, field, items) {
     const reason = blockReason(g, plan, i, field, it.value);
     const on = plan[i][field] === it.value;
     return `<button class="opt ${on ? 'on' : ''} ${reason && !on ? 'off' : ''}" data-act="pick" data-i="${i}" data-f="${field}" data-v="${it.value === null ? '' : it.value}" ${reason && !on ? `data-reason="${esc(reason)}"` : ''} aria-pressed="${on}">
-      <span class="lb">${it.label}</span>${it.note ? `<span class="nt">${it.note}</span>` : ''}</button>`;
+      <span class="lb">${it.label}</span>${it.note ? `<span class="nt ${it.tone ? 't-' + it.tone : ''}">${it.note}</span>` : ''}</button>`;
   }).join('')}</div>`;
 }
 function costNote(cost, env, extra) {
@@ -698,16 +768,16 @@ screens.plan = () => {
   const cards = plan.map((p, i) => {
     const pc = plotCost(ctx, p, i);
     const cropItems = [...CONFIG.cropOrder.filter((c) => CONFIG.crops[c].seasons.includes(season)), null].map((c) => c
-      ? { value: c, label: `${CONFIG.crops[c].icon} ${CONFIG.crops[c].name}`, note: `費用${CONFIG.crops[c].cost}・売上${CONFIG.crops[c].sales}` }
+      ? { value: c, label: `${CONFIG.crops[c].icon} ${CONFIG.crops[c].name}`, note: `費用${CONFIG.crops[c].cost}・売上${CONFIG.crops[c].sales}`, tone: 'profit' }
       : { value: null, label: '植えない', note: '費用0' });
     const offSeason = CONFIG.cropOrder.filter((c) => !CONFIG.crops[c].seasons.includes(season));
     const houseItems = [
       { value: false, label: '<ruby>露地<rt>ろじ</rt></ruby>', note: '天候の影響を受ける' },
       { value: true, label: '🏠 ハウス', note: g.houses[i] ? (season === 'winter' ? '建設済み・暖房2・環境−1' : '建設済み') : `建設${CONFIG.house.buildCost}${season === 'winter' ? '・暖房2・環境−1' : ''}` },
     ];
-    const pestItems = CONFIG.pestOrder.map((k) => ({ value: k, label: CONFIG.pestOptions[k].label, note: costNote(CONFIG.pestOptions[k].cost, CONFIG.pestOptions[k].env, CONFIG.pestOptions[k].note) }));
-    const fertItems = CONFIG.fertOrder.map((k) => { const f = CONFIG.fertOptions[k]; return { value: k, label: f.label, note: costNote(f.cost, f.env, f.yield ? `収量+${pct(f.yield)}` : '') }; });
-    const shipItems = CONFIG.shipOrder.map((k) => { const s = CONFIG.shipOptions[k]; return { value: k, label: s.label, note: (s.region ? `地域+${s.region}・` : '') + s.note }; });
+    const pestItems = CONFIG.pestOrder.map((k) => { const o = CONFIG.pestOptions[k]; return { value: k, label: o.label, note: costNote(o.cost, o.env, o.note), tone: o.env ? 'env' : '' }; });
+    const fertItems = CONFIG.fertOrder.map((k) => { const f = CONFIG.fertOptions[k]; return { value: k, label: f.label, note: costNote(f.cost, f.env, f.yield ? `収量+${pct(f.yield)}` : ''), tone: f.env ? 'env' : '' }; });
+    const shipItems = CONFIG.shipOrder.map((k) => { const s = CONFIG.shipOptions[k]; return { value: k, label: s.label, note: (s.region ? `地域+${s.region}・` : '') + s.note, tone: s.region ? 'region' : 'profit' }; });
     return `<div class="plot ${p.crop ? '' : 'empty'}">
       <div class="plot-head"><h3>区画${i + 1} ${g.houses[i] ? '🏠' : ''}</h3>
         ${i > 0 ? `<button class="mini" data-act="copyLeft" data-i="${i}">◀ 区画${i}と同じ</button>` : ''}</div>
@@ -721,13 +791,14 @@ screens.plan = () => {
     </div>`;
   }).join('');
   const nDirect = countDirect(plan);
-  return `${statusBar()}<div class="wrap">
+  return `<div class="wrap">
     <h2>${CONFIG.seasons[g.seasonIdx].icon} ${CONFIG.seasons[g.seasonIdx].name}の作付け計画</h2>
     ${season === 'winter' ? `<div class="hint" style="margin-bottom:10px">💡 ${CONFIG.seasonHints.winter}</div>` : ''}
     ${nDirect >= 2 ? `<div class="hint" style="margin-bottom:10px">🛒 直売所に${nDirect}区画出すと、売れ残る確率は${pct(CONFIG.direct.unsoldProb[nDirect])}です（1区画なら${pct(CONFIG.direct.unsoldProb[1])}）。</div>` : ''}
     <div class="plots">${cards}</div>
   </div>
   <div class="foot">
+    <div class="legend">色の意味：<b class="p">利益</b>・<b class="e">環境</b>・<b class="r">地域</b></div>
     <div class="money">費用合計 <b>${fmt(total)}</b>万円　残り資金 <b class="${over ? 'bad' : ''}">${fmt(left)}</b>万円</div>
     ${over ? '<div class="bad">資金が足りません。選択を変えてください。</div>' : ''}
     <button class="btn ${over ? 'off' : ''}" data-act="decide" ${over ? 'data-reason="資金が足りないので決定できません。"' : ''}>決定</button>
@@ -738,7 +809,7 @@ screens.event = () => {
   const g = state.game;
   const r = g.current;
   const e = CONFIG.events[r.event];
-  return `${statusBar()}<div class="wrap" style="max-width:860px">
+  return `<div class="wrap" style="max-width:860px">
     <h2 class="center">${CONFIG.seasons[g.seasonIdx].name}のイベントカード</h2>
     <div class="card-stage" data-act="skipFlip">
       <div class="card ${g.revealed ? 'shown' : 'flip'}">
@@ -777,7 +848,7 @@ screens.result = () => {
       <td class="num"><b>+${fmt(p.sales)}</b></td></tr>`;
   }).join('');
   const net = round1(r.money - r.moneyBefore);
-  return `${statusBar()}<div class="wrap" style="max-width:1000px">
+  return `<div class="wrap" style="max-width:1000px">
     <h2>${CONFIG.seasons[g.seasonIdx].icon} ${CONFIG.seasons[g.seasonIdx].name}の結果　${CONFIG.events[r.event].icon} ${CONFIG.events[r.event].name}</h2>
     <div class="panel" style="overflow-x:auto">
       <table>
@@ -821,7 +892,7 @@ function radarSVG(sc) {
   }).join('');
   const dots = axes.map((a, i) => `<circle cx="${pt(i, sc[a.k])[0]}" cy="${pt(i, sc[a.k])[1]}" r="5" fill="${a.color}"/>`).join('');
   return `<svg class="radar" viewBox="0 0 ${W} ${H}" role="img" aria-label="利益${sc.P}点、環境${sc.E}点、地域${sc.R}点">
-    ${grid}${ticks}<polygon points="${poly}" fill="rgba(47,125,50,.25)" stroke="var(--accent)" stroke-width="2.5"/>${dots}${labels}</svg>`;
+    ${grid}${ticks}<polygon points="${poly}" fill="rgba(28,36,48,.12)" stroke="var(--accent)" stroke-width="2.5"/>${dots}${labels}</svg>`;
 }
 
 screens.final = () => {
@@ -874,7 +945,8 @@ let flipTimer = null;
 function render() {
   const fn = screens[state.screen];
   document.body.classList.toggle('final-page', state.screen === 'final');
-  app.innerHTML = fn();
+  const inGame = state.game && ['seasonStart', 'plan', 'event', 'result'].includes(state.screen);
+  app.innerHTML = inGame ? `<div class="shell">${sidePanel()}<main class="main">${fn()}</main></div>` : fn();
   if (state.screen === 'event' && !state.game.revealed) {
     clearTimeout(flipTimer);
     flipTimer = setTimeout(() => { if (state.screen === 'event') { state.game.revealed = true; render(); } }, 850);
