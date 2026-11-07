@@ -40,12 +40,13 @@ def weather_loss(ev, crop, house):
     if house: loss*=hf
     return loss
 
-def pest_loss(ev, season, crop, pest):
+def pest_loss(ev, season, crop, pest, house=False):
     if season=='winter': return 0
     tbl = CFG['pest_out'] if ev=='pest' else CFG['pest_base']
     l = tbl.get(crop, tbl['default'])
+    if house: l*=CFG.get('house_pest',1.0)
     if pest=='chem': return 0
-    if pest=='net': return l*CFG['net_factor']
+    if pest=='net': return l*(CFG.get('house_net_factor',CFG['net_factor']) if house else CFG['net_factor'])
     return l
 
 def play(policy, rng, score_fn):
@@ -81,7 +82,7 @@ def play(policy, rng, score_fn):
             env+=fe+CFG['pest_env'][pest]
             if season=='winter' and house: env+=CFG['heat_env']
             y0 = 1+fy
-            y = y0*(1-weather_loss(ev,crop,house))*(1-pest_loss(ev,season,crop,pest))
+            y = y0*(1-weather_loss(ev,crop,house))*(1-pest_loss(ev,season,crop,pest,house))
             base=CROPS[crop]['sales']
             if ship=='market':
                 m = 1.5 if ev=='high' else 0.6 if ev=='crash' else 1.0
