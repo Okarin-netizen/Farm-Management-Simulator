@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>農家経営シミュレーション</title>
+<style>
+:root {
+  --bg: #f6f3e8;
+  --panel: #ffffff;
+  --ink: #2b2a26;
+  --muted: #6b6759;
+  --line: #ddd6c1;
+  --accent: #2f7d32;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3f1e0;
+  --warn: #b3261e;
+  --warn-soft: #fbe5e2;
+  --gold: #b7791f;
+  --profit: #c27c0e;
+  --env: #2f7d32;
+  --region: #1e63b5;
+  --off: #ece9df;
+  --off-ink: #a8a392;
+  --radius: 14px;
+  --tap: 48px;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Meiryo", sans-serif;
+  font-size: 18px; line-height: 1.55;
+  -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; }
+rt { font-size: 0.55em; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 12px 16px 120px; }
+h1 { font-size: 30px; margin: 8px 0 4px; }
+h2 { font-size: 24px; margin: 4px 0 10px; }
+h3 { font-size: 19px; margin: 0 0 6px; }
+.muted { color: var(--muted); }
+.small { font-size: 15px; }
+.center { text-align: center; }
+
+/* status bar */
+.bar {
+  position: sticky; top: 0; z-index: 10; background: var(--accent); color: var(--accent-ink);
+  display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; justify-content: center;
+  padding: 8px 12px; font-size: 18px; box-shadow: 0 2px 6px rgba(0,0,0,.15);
+}
+.bar b { font-size: 21px; }
+.bar .sep { opacity: .6; }
+
+/* buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 56px; min-width: 160px; padding: 8px 24px; border-radius: 999px; border: 0;
+  background: var(--accent); color: var(--accent-ink); font-size: 20px; font-weight: bold; cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0,0,0,.18);
+}
+.btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
+.btn.sub { background: var(--panel); color: var(--accent); border: 2px solid var(--accent); box-shadow: none; }
+.btn.off { background: var(--off); color: var(--off-ink); box-shadow: none; }
+.btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 16px 0; }
+
+.panel { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--line); padding: 14px 16px; }
+.stack > * + * { margin-top: 12px; }
+
+/* title */
+.hero { text-align: center; padding: 20px 0 8px; }
+.hero .icons { font-size: 54px; letter-spacing: 6px; }
+.field { display: block; margin: 12px 0; }
+.field input {
+  display: block; width: 100%; min-height: var(--tap); font-size: 20px; padding: 8px 12px;
+  border: 2px solid var(--line); border-radius: 10px; background: #fff; margin-top: 4px;
+}
+.seg { display: grid; grid-template-columns: repeat(var(--n, 2), 1fr); gap: 6px; }
+.seg.n4 { --n: 2; }
+@media (max-width: 899px) and (min-width: 560px) { .seg.n4 { --n: 4; } }
+.seg .opt {
+  min-width: 0; min-height: var(--tap); padding: 4px 6px; border-radius: 10px;
+  border: 2px solid var(--line); background: #fff; cursor: pointer; text-align: center; line-height: 1.25;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.seg .opt .lb { font-size: 17px; font-weight: bold; }
+.seg .opt .nt { font-size: 13px; color: var(--muted); }
+.seg .opt.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.seg .opt.off { background: var(--off); color: var(--off-ink); border-style: dashed; }
+.seg .opt.off .nt { color: var(--off-ink); }
+
+/* how to */
+.howto { text-align: center; min-height: 260px; display: flex; flex-direction: column; justify-content: center; }
+.howto .big { font-size: 64px; }
+.dots { text-align: center; color: var(--muted); letter-spacing: 6px; }
+
+/* season start */
+.deck { display: flex; flex-wrap: wrap; gap: 8px; }
+.deck .ev { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font-size: 17px; }
+.deck .ev b { font-size: 20px; }
+.crop-list { font-size: 22px; }
+
+/* plan */
+.plots { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 900px) { .plots { grid-template-columns: repeat(3, 1fr); } }
+.plot { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.plot-head { min-height: 44px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.plot-head h3 { margin: 0; }
+.mini { min-height: 44px; padding: 4px 12px; border-radius: 999px; border: 2px solid var(--accent); background: #fff; color: var(--accent); font-size: 15px; font-weight: bold; cursor: pointer; }
+.row { margin-top: 8px; }
+.row .rl { font-size: 15px; font-weight: bold; color: var(--muted); margin-bottom: 2px; }
+.plot.empty .row.dim { opacity: .55; }
+.foot {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: rgba(255,255,255,.97);
+  border-top: 2px solid var(--line); padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 8px 20px;
+  align-items: center; justify-content: center;
+}
+.foot .money { font-size: 19px; }
+.foot .money b { font-size: 23px; }
+.foot .bad { color: var(--warn); font-weight: bold; }
+.hint { background: #fff8e1; border: 1px solid #f0d78c; border-radius: 10px; padding: 6px 10px; font-size: 16px; }
+
+/* toast */
+.toast {
+  position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); z-index: 30; max-width: 92vw;
+  background: #333; color: #fff; padding: 10px 18px; border-radius: 12px; font-size: 17px; opacity: 0;
+  pointer-events: none; transition: opacity .2s;
+}
+.toast.show { opacity: .95; }
+
+/* event card */
+.card-stage { perspective: 900px; display: flex; justify-content: center; margin: 16px 0; cursor: pointer; }
+.card { width: 240px; height: 320px; position: relative; transform-style: preserve-3d; }
+.card.flip { animation: flip .8s ease forwards; }
+.card.shown { transform: rotateY(180deg); }
+@keyframes flip { from { transform: rotateY(0); } to { transform: rotateY(180deg); } }
+.face {
+  position: absolute; inset: 0; border-radius: 18px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0,0,0,.18);
+}
+.face.back { background: repeating-linear-gradient(45deg, #2f7d32, #2f7d32 12px, #3a8d3e 12px, #3a8d3e 24px); color: #fff; font-size: 64px; }
+.face.front { background: #fff; border: 4px solid var(--accent); transform: rotateY(180deg); padding: 12px; text-align: center; }
+.face.front .ei { font-size: 84px; line-height: 1.1; }
+.face.front .en { font-size: 26px; font-weight: bold; margin-top: 8px; }
+.ev-text { font-size: 20px; text-align: center; max-width: 640px; margin: 0 auto; }
+
+/* result */
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+th { font-size: 15px; color: var(--muted); font-weight: bold; }
+td.num, th.num { text-align: right; white-space: nowrap; }
+.plus { color: var(--accent); font-weight: bold; }
+.minus { color: var(--warn); font-weight: bold; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-size: 15px; border-radius: 999px; padding: 1px 8px; background: #f1efe6; white-space: nowrap; }
+.chip.up { background: var(--accent-soft); color: #1d5a20; }
+.chip.down { background: var(--warn-soft); color: var(--warn); }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.summary .box { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; text-align: center; }
+.summary .box .k { font-size: 15px; color: var(--muted); }
+.summary .box .v { font-size: 22px; font-weight: bold; }
+
+/* final */
+.final { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 900px) { .final { grid-template-columns: 330px 1fr; } }
+.final .who { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; font-size: 16px; }
+.final .who b { font-size: 20px; }
+.total { text-align: center; }
+.total .t { font-size: 46px; font-weight: bold; line-height: 1.1; }
+.total .rank { font-size: 21px; font-weight: bold; color: var(--gold); }
+.scores { width: 100%; font-size: 15px; }
+.scores td { padding: 3px 4px; }
+.scores .pt { font-size: 20px; font-weight: bold; text-align: right; }
+.comments { margin: 0; padding-left: 1.2em; font-size: 16px; }
+.comments li + li { margin-top: 4px; }
+.next { font-size: 16px; background: #fff8e1; border: 1px solid #f0d78c; border-radius: 10px; padding: 6px 10px; margin-top: 8px; }
+.log { font-size: 14px; }
+.log td, .log th { padding: 3px 5px; }
+.radar { display: block; margin: 0 auto; width: 100%; max-width: 320px; height: auto; }
+.score-box { display: grid; grid-template-columns: 1fr; gap: 4px; align-items: center; }
+@media (min-width: 560px) and (max-width: 899px) { .score-box { grid-template-columns: 1fr 1fr; } }
+.final .panel { padding: 10px 12px; }
+
+.final-page .wrap { padding-top: 8px; padding-bottom: 8px; }
+/* compact landscape for final screen (Chromebook 1366x768) */
+@media (min-width: 900px) and (max-height: 820px) {
+  .final-page .wrap { padding-top: 6px; padding-bottom: 8px; }
+  .total .t { font-size: 40px; }
+  .radar { max-width: 260px; }
+}
+
+/* debug */
+.debug table { font-size: 15px; }
+.debug td, .debug th { border: 1px solid var(--line); }
+.ok { color: var(--accent); font-weight: bold; }
+.ng { color: var(--warn); font-weight: bold; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+'use strict';
+/* =========================================================================
+ * 1. CONFIG  ― 数値と文言はすべてここ。単位は万円。倍率は小数。
+ * ========================================================================= */
+const CONFIG = {
+  startMoney: 30,
+  plots: 3,
+  seasons: [
+    { id: 'spring', name: '春', icon: '🌸' },
+    { id: 'summer', name: '夏', icon: '🌻' },
+    { id: 'autumn', name: '秋', icon: '🍁' },
+    { id: 'winter', name: '冬', icon: '⛄' },
+  ],
+  crops: {
+    spinach:    { name: 'ほうれん草', icon: '🌿', seasons: ['spring', 'autumn', 'winter'], cost: 2, sales: 5,  needHouse: false, note: '安定・低価格。猛暑に弱い' },
+    potato:     { name: 'じゃがいも', icon: '🥔', seasons: ['spring'],                    cost: 2, sales: 5,  needHouse: false, note: '天候や虫に強い', weatherFactor: 0.5 },
+    cabbage:    { name: 'キャベツ',   icon: '🥬', seasons: ['spring', 'autumn'],           cost: 3, sales: 7,  needHouse: false, note: '虫に弱い' },
+    tomato:     { name: 'ミニトマト', icon: '🍅', seasons: ['summer'],                    cost: 4, sales: 10, needHouse: false, note: '長雨に弱い' },
+    strawberry: { name: 'いちご',     icon: '🍓', seasons: ['winter'],                    cost: 6, sales: 15, needHouse: true,  note: 'ハウスが必要。暖房費がかかる' },
+  },
+  cropOrder: ['spinach', 'potato', 'cabbage', 'tomato', 'strawberry'],
+  house: {
+    buildCost: 6,   // 区画ごとに1回（設定書10→6）
+    heatCost: 2,    // 冬にハウスで作付けすると暖房費
+    heatEnv: -1,    // 冬の暖房による環境ポイント
+  },
+  // 虫害（収量が減る割合）。冬は虫が少ないので0
+  pestDamage: {
+    normal:   { cabbage: 0.40, potato: 0.10, strawberry: 0, default: 0.20 },
+    outbreak: { cabbage: 0.70, potato: 0.25, strawberry: 0, default: 0.50 },
+    noPestSeasons: ['winter'],
+  },
+  pestOptions: {
+    chem: { name: '化学農薬',  label: '化学<ruby>農薬<rt>のうやく</rt></ruby>', short: '農薬',   cost: 1, env: -2, factor: 0,   note: '虫害なし' },
+    net:  { name: '防虫ネット', label: '<ruby>防虫<rt>ぼうちゅう</rt></ruby>ネット', short: 'ネット', cost: 1, env: 0,  factor: 0.5, note: '虫害半分' },
+    none: { name: '何もしない', label: '何もしない', short: 'なし', cost: 0, env: 0, factor: 1, note: '' },
+  },
+  pestOrder: ['chem', 'net', 'none'],
+  fertOptions: {
+    chem:    { name: '化学肥料', label: '化学<ruby>肥料<rt>ひりょう</rt></ruby>', short: '化学', cost: 1, env: -1, yield: 0.20 },
+    compost: { name: '堆肥',     label: '<ruby>堆肥<rt>たいひ</rt></ruby>',       short: '堆肥', cost: 1, env: 1,  yield: 0.10 },
+    none:    { name: 'なし',     label: 'なし', short: 'なし', cost: 0, env: 0, yield: 0 },
+  },
+  fertOrder: ['chem', 'compost', 'none'],
+  shipOptions: {
+    market:   { name: '市場',     label: '<ruby>市場<rt>しじょう</rt></ruby>', short: '市場', region: 0, note: '価格が上下する' },
+    direct:   { name: '直売所',   label: '<ruby>直売所<rt>ちょくばいじょ</rt></ruby>', short: '直売', region: 1, note: '価格×1.2・売れ残りあり' },
+    contract: { name: '契約出荷', label: '<ruby>契約<rt>けいやく</rt></ruby>', short: '契約', region: 0, note: '価格が変わらない' },
+    process:  { name: '加工',     label: '<ruby>加工<rt>かこう</rt></ruby>', short: '加工', region: 1, note: '価格×0.8・被害の半分を回収' },
+  },
+  shipOrder: ['market', 'direct', 'contract', 'process'],
+  direct: { bonus: 1.2, unsoldProb: [0, 0.20, 0.50, 0.80], unsoldMult: 0.7 },  // 出す区画数 0〜3
+  process: { price: 0.8, recover: 0.5 },
+  events: {
+    typhoon: { name: '台風',   icon: '🌀', text: '台風が来た！ 露地の作物は収量が半分に（ハウスは被害が半分）。', weather: { default: 0.5 }, houseFactor: 0.5 },
+    heat:    { name: '猛暑',   icon: '☀️', text: '猛暑が続いた。ほうれん草は収量−50%、ほかの作物は−10%（ハウスは被害が半分）。', weather: { spinach: 0.5, default: 0.1 }, houseFactor: 0.5 },
+    rain:    { name: '長雨',   icon: '☔', text: '長雨が続いた。露地のミニトマトは収量−50%。', weather: { tomato: 0.5 }, houseFactor: 0 },
+    pest:    { name: '害虫大発生', icon: '🐛', text: '害虫が大発生！ 虫対策をしていない作物は大きな被害。', outbreak: true },
+    high:    { name: '価格高騰', icon: '📈', text: '野菜の値段が上がった！ 市場に出した作物は価格×1.5。', marketMult: 1.5 },
+    crash:   { name: '豊作で値崩れ', icon: '📉', text: 'あちこちで豊作になり値崩れ。市場に出した作物は価格×0.6。', marketMult: 0.6 },
+    super:   { name: '地元スーパーからの注文', icon: '🏪', text: '地元スーパーから注文が入った！ 直売所の売れ残りなし。', noUnsold: true },
+    school:  { name: '給食センターからの依頼', icon: '🍱', text: '給食センターから野菜の依頼！ 売上+3万円、地域ポイント+2（作物を植えていれば）。', bonusMoney: 3, bonusRegion: 2 },
+    normal:  { name: '平年並み', icon: '🌤️', text: '特に大きなできごとはなく、平年並みの季節だった。' },
+  },
+  eventOrder: ['typhoon', 'heat', 'rain', 'pest', 'high', 'crash', 'super', 'school', 'normal'],
+  // 山札の枚数（季節ごとの重み）。0はその季節に出ない
+  deck: {
+    spring: { typhoon: 0, heat: 0, rain: 1, pest: 2, high: 1, crash: 1, super: 1, school: 1, normal: 2 },
+    summer: { typhoon: 2, heat: 2, rain: 2, pest: 2, high: 1, crash: 1, super: 1, school: 0, normal: 1 },
+    autumn: { typhoon: 2, heat: 0, rain: 1, pest: 1, high: 1, crash: 2, super: 1, school: 1, normal: 2 },
+    winter: { typhoon: 0, heat: 0, rain: 0, pest: 0, high: 2, crash: 1, super: 1, school: 2, normal: 3 },
+  },
+  seasonHints: {
+    spring: '春は害虫が出やすい季節。虫に弱いキャベツは対策を考えよう。',
+    summer: '夏は台風・猛暑・長雨が来やすい。給食センターは夏休み。',
+    autumn: '秋は台風と値崩れに注意。',
+    winter: '冬は虫が少なく、天候の被害もない。いちごはハウスで。',
+  },
+  // スコア換算（各0〜100、合計0〜300）
+  score: {
+    profit: { base: 0,  mult: 2,   label: '利益', formula: '利益（万円）× 2' },
+    env:    { base: 75, mult: 0.8, label: '環境', formula: '75 ＋ 環境ポイント × 0.8' },
+    region: { base: 40, mult: 2,   label: '地域', formula: '40 ＋ 地域ポイント × 2' },
+  },
+  ranks: [
+    { min: 200, name: '持続可能な農業の達人' },
+    { min: 185, name: '地域に信頼される農家' },
+    { min: 165, name: '一人前の農家' },
+    { min: -Infinity, name: '見習い農家' },
+  ],
+  defaultPlot: { crop: 'spinach', pest: 'none', fert: 'none', ship: 'market' },
+  howto: [
+    { icon: '🟫🟫🟫', title: '3つの畑で、春夏秋冬の1年間', text: '畑は3区画。季節ごとに、区画ごとに作物を選んで植えます。最初の資金は30万円です。' },
+    { icon: '🌱🏠🐛🧪🚚', title: '1つの区画で5つを選ぶ', text: '作物・栽培方法・虫対策・肥料・出荷先を選びます。季節の終わりにイベントカードが1枚引かれ、収穫と売上が決まります。' },
+    { icon: '💰🌏🤝', title: '利益・環境・地域の3つで評価', text: 'もうけだけでなく、環境へのやさしさや地域とのつながりも点数になります。3つのバランスがよい農業を目指そう！' },
+  ],
+};
+
+/* =========================================================================
+ * 2. RNG  ― シード付き乱数（mulberry32）。Math.random は使わない
+ * ========================================================================= */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function hashString(s) {  // FNV-1a
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return h >>> 0;
+}
+function freshSeed() {
+  const a = new Uint32Array(1);
+  (window.crypto || window.msCrypto).getRandomValues(a);
+  return a[0];
+}
+
+/* =========================================================================
+ * 3. ENGINE  ― DOM に触らない純粋関数
+ * ========================================================================= */
+const round1 = (x) => Math.round(x * 10) / 10;
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+const seasonId = (idx) => CONFIG.seasons[idx].id;
+
+function drawEvent(season, rng) {
+  const d = CONFIG.deck[season];
+  const ids = CONFIG.eventOrder.filter((k) => d[k] > 0);
+  const sum = ids.reduce((s, k) => s + d[k], 0);
+  let r = rng() * sum;
+  for (const k of ids) { r -= d[k]; if (r < 0) return k; }
+  return ids[ids.length - 1];
+}
+function countDirect(plan) { return plan.filter((p) => p.crop && p.ship === 'direct').length; }
+function drawUnsold(nDirect, evId, rng) {
+  if (nDirect === 0) return false;
+  const r = rng();  // 抽選の回数を一定にするため、スーパーのときも乱数は1回使う
+  if (CONFIG.events[evId].noUnsold) return false;
+  return r < CONFIG.direct.unsoldProb[nDirect];
+}
+function weatherLoss(evId, crop, house) {
+  const ev = CONFIG.events[evId];
+  if (!ev.weather) return 0;
+  let l = (crop in ev.weather) ? ev.weather[crop] : (ev.weather.default || 0);
+  l *= (CONFIG.crops[crop].weatherFactor ?? 1);
+  if (house) l *= ev.houseFactor;
+  return l;
+}
+function pestLoss(evId, season, crop, pest) {
+  if (CONFIG.pestDamage.noPestSeasons.includes(season)) return 0;
+  const tbl = CONFIG.events[evId].outbreak ? CONFIG.pestDamage.outbreak : CONFIG.pestDamage.normal;
+  const l = (crop in tbl) ? tbl[crop] : tbl.default;
+  return l * CONFIG.pestOptions[pest].factor;
+}
+// ctx: { seasonIdx, money, houses:[bool] }  plan: [{crop|null, house:bool, pest, fert, ship}]
+function plotCost(ctx, p, i) {
+  const season = seasonId(ctx.seasonIdx);
+  const build = p.house && !ctx.houses[i] ? CONFIG.house.buildCost : 0;
+  if (!p.crop) return { build, crop: 0, pest: 0, fert: 0, heat: 0, total: build };
+  const c = {
+    build,
+    crop: CONFIG.crops[p.crop].cost,
+    pest: CONFIG.pestOptions[p.pest].cost,
+    fert: CONFIG.fertOptions[p.fert].cost,
+    heat: (season === 'winter' && p.house) ? CONFIG.house.heatCost : 0,
+  };
+  c.total = c.build + c.crop + c.pest + c.fert + c.heat;
+  return c;
+}
+function planCost(ctx, plan) { return plan.reduce((s, p, i) => s + plotCost(ctx, p, i).total, 0); }
+
+function computeSeason(ctx, plan, evId, unsold) {
+  const season = seasonId(ctx.seasonIdx);
+  const ev = CONFIG.events[evId];
+  const cost = planCost(ctx, plan);
+  const nDirect = countDirect(plan);
+  const houses = ctx.houses.map((h, i) => h || (!!plan[i].crop && plan[i].house));
+  let sales = 0, envD = 0, regD = 0;
+  const plots = plan.map((p, i) => {
+    const house = houses[i];
+    const built = house && !ctx.houses[i];
+    const pc = plotCost(ctx, p, i);
+    if (!p.crop) return { empty: true, house, built, cost: pc.total, sales: 0, env: 0, region: 0 };
+    const crop = CONFIG.crops[p.crop];
+    const fert = CONFIG.fertOptions[p.fert];
+    const pest = CONFIG.pestOptions[p.pest];
+    const ship = CONFIG.shipOptions[p.ship];
+    const y0 = 1 + fert.yield;
+    const wl = weatherLoss(evId, p.crop, house);
+    const pl = pestLoss(evId, season, p.crop, p.pest);
+    const y = y0 * (1 - wl) * (1 - pl);
+    let s, priceNote;
+    if (p.ship === 'market') {
+      const m = ev.marketMult || 1;
+      s = crop.sales * y * m; priceNote = m === 1 ? '' : `価格×${m}`;
+    } else if (p.ship === 'direct') {
+      s = crop.sales * y * CONFIG.direct.bonus * (unsold ? CONFIG.direct.unsoldMult : 1);
+      priceNote = `価格×${CONFIG.direct.bonus}` + (unsold ? `・売れ残り×${CONFIG.direct.unsoldMult}` : '');
+    } else if (p.ship === 'contract') {
+      s = crop.sales * y; priceNote = '価格固定';
+    } else {
+      s = crop.sales * CONFIG.process.price * (y + (y0 - y) * CONFIG.process.recover);
+      priceNote = `価格×${CONFIG.process.price}・被害の半分を回収`;
+    }
+    s = round1(s);
+    let e = fert.env + pest.env;
+    const heated = season === 'winter' && house;
+    if (heated) e += CONFIG.house.heatEnv;
+    sales += s; envD += e; regD += ship.region;
+    return {
+      empty: false, house, built, heated, crop: p.crop, pest: p.pest, fert: p.fert, ship: p.ship,
+      fertRate: fert.yield, weatherLoss: wl, pestLoss: pl, yieldRate: y, baseYield: y0,
+      priceNote, cost: pc.total, sales: s, env: e, region: ship.region,
+    };
+  });
+  const planted = plan.some((p) => p.crop);
+  const bonusMoney = planted && ev.bonusMoney ? ev.bonusMoney : 0;
+  const bonusRegion = planted && ev.bonusRegion ? ev.bonusRegion : 0;
+  regD += bonusRegion;
+  const totalSales = round1(sales + bonusMoney);
+  return {
+    seasonIdx: ctx.seasonIdx, event: evId, unsold: nDirect > 0 && unsold, nDirect,
+    cost, sales: round1(sales), bonusMoney, bonusRegion, env: envD, region: regD, plots,
+    houses, moneyBefore: ctx.money, money: round1(ctx.money - cost + totalSales),
+  };
+}
+
+function finalScore(money, env, region) {
+  const S = CONFIG.score;
+  const profit = round1(money - CONFIG.startMoney);
+  const P = clamp(Math.round(S.profit.base + S.profit.mult * profit), 0, 100);
+  const E = clamp(Math.round(S.env.base + S.env.mult * env), 0, 100);
+  const R = clamp(Math.round(S.region.base + S.region.mult * region), 0, 100);
+  const total = P + E + R;
+  const rank = CONFIG.ranks.find((r) => total >= r.min).name;
+  return { profit, env, region, P, E, R, total, rank };
+}
+
+// 1年分を自動でプレイ（バランス試算用）。policy(seasonIdx, houses, money) => plan
+function playYear(policy, rngEv, rngMisc) {
+  let st = { seasonIdx: 0, money: CONFIG.startMoney, env: 0, region: 0, houses: [false, false, false] };
+  for (let si = 0; si < 4; si++) {
+    st.seasonIdx = si;
+    let plan = policy(si, st.houses, st.money, rngMisc);
+    if (planCost(st, plan) > st.money) plan = plan.map(() => ({ crop: null, house: false, pest: 'none', fert: 'none', ship: 'market' }));
+    const ev = drawEvent(seasonId(si), rngEv);
+    const unsold = drawUnsold(countDirect(plan), ev, rngMisc);
+    const r = computeSeason(st, plan, ev, unsold);
+    st = { seasonIdx: si, money: r.money, env: st.env + r.env, region: st.region + r.region, houses: r.houses };
+  }
+  return finalScore(st.money, st.env, st.region);
+}
+
+/* =========================================================================
+ * 4. COMMENTS  ― 振り返りコメントのルール表（上から優先、最大3つ）
+ * ========================================================================= */
+function summarize(history) {
+  const s = { chemPest: 0, chemFert: 0, compost: 0, unsold: false, processHelped: false, contractCrash: false,
+    built: false, winterPest: false, nonePestLoss: 0, nonePestBase: 0, nonePestPlots: 0 };
+  for (const h of history) {
+    const season = seasonId(h.result.seasonIdx);
+    if (h.result.unsold) s.unsold = true;
+    h.result.plots.forEach((p) => {
+      if (p.built) s.built = true;
+      if (p.empty) return;
+      if (p.pest === 'chem') s.chemPest++;
+      if (p.fert === 'chem') s.chemFert++;
+      if (p.fert === 'compost') s.compost++;
+      if (season === 'winter' && p.pest !== 'none') s.winterPest = true;
+      if (p.ship === 'process' && p.yieldRate < p.baseYield - 1e-9) s.processHelped = true;
+      if (p.ship === 'contract' && h.result.event === 'crash') s.contractCrash = true;
+      if (p.pest === 'none' && season !== 'winter') {
+        const base = CONFIG.crops[p.crop].sales;
+        s.nonePestBase += base;
+        s.nonePestLoss += base * p.baseYield * (1 - p.weatherLoss) * p.pestLoss;
+        s.nonePestPlots++;
+      }
+    });
+  }
+  return s;
+}
+const COMMENTS = {
+  rules: [
+    { when: (s, sc) => s.chemPest >= 4 && sc.E < 60, text: '化学農薬を多く使ったため、虫の被害が少なく利益は高いが、環境点が低くなりました。' },
+    { when: (s) => s.chemFert >= 6, text: '化学肥料で収量は増えましたが、土や川への影響で環境点が下がりました。' },
+    { when: (s) => s.compost >= 8, text: '堆肥で土づくりをしたため、環境点が高くなりました。収量の伸びは化学肥料より小さめです。' },
+    { when: (s) => s.nonePestPlots >= 2 && s.nonePestLoss >= 0.3 * s.nonePestBase, text: '虫対策をしなかった作物は、虫に食べられて売上が減りました。防虫ネットなら環境点を下げずに被害を減らせます。' },
+    { when: (s) => s.unsold, text: '直売所に一度にたくさん出したため、売れ残りが出ました。買う人の数には限りがあります。' },
+    { when: (s) => s.processHelped, text: '被害を受けた作物も、加工することで売上を取り戻せました。' },
+    { when: (s) => s.contractCrash, text: '値崩れのときも、契約出荷で価格が守られました。' },
+    { when: (s) => s.built, text: 'ハウスに投資して天候の被害を減らしました。冬の暖房には費用と環境への負担もかかりました。' },
+    { when: (s) => s.winterPest, text: '冬は虫が少ないので、虫対策の費用はあまり役に立ちませんでした。' },
+    { when: (s, sc) => sc.P >= 55 && sc.E >= 55 && sc.R >= 55, text: '利益・環境・地域のバランスがとれた経営でした。' },
+  ],
+  fallback: '大きなかたよりのない経営でした。どの選択がどの点数に効いたか、季節ごとの表で確かめてみよう。',
+  hints: {
+    P: '次は、価格が高い作物や市場への出荷も組み合わせてみよう。',
+    E: '次は、堆肥や防虫ネットに切り替える区画をつくってみよう。',
+    R: '次は、直売所や加工に出す区画をつくってみよう。',
+  },
+  max: 3,
+};
+function makeComments(history, sc) {
+  const s = summarize(history);
+  const list = COMMENTS.rules.filter((r) => r.when(s, sc)).slice(0, COMMENTS.max).map((r) => r.text);
+  if (!list.length) list.push(COMMENTS.fallback);
+  const low = [['P', sc.P], ['E', sc.E], ['R', sc.R]].sort((a, b) => a[1] - b[1])[0][0];
+  return { list, hint: COMMENTS.hints[low] };
+}
+
+/* =========================================================================
+ * 5. UI
+ * ========================================================================= */
+const params = new URLSearchParams(location.search);
+const app = document.getElementById('app');
+const state = { screen: 'title', name: '', round: 1, code: '', howtoPage: 0, game: null };
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = (x) => { const v = round1(x); return Number.isInteger(v) ? String(v) : v.toFixed(1); };
+const signed = (x) => (x > 0 ? '+' : x < 0 ? '−' : '±') + fmt(Math.abs(x));
+const pct = (x) => Math.round(x * 100) + '%';
+const seasonsOf = (crop) => CONFIG.crops[crop].seasons.map((s) => CONFIG.seasons.find((x) => x.id === s).name).join('・');
+
+function newGame() {
+  let seed;
+  if (state.code.trim()) seed = hashString('code:' + state.code.trim());
+  else if (params.get('seed')) seed = hashString('seed:' + params.get('seed'));
+  else seed = freshSeed();
+  return {
+    seed, rngEv: mulberry32(seed), rngMisc: mulberry32(seed ^ 0x9E3779B9),
+    seasonIdx: 0, money: CONFIG.startMoney, env: 0, region: 0, houses: [false, false, false],
+    plan: null, history: [], current: null, revealed: false, finishedAt: null,
+  };
+}
+function cropAvailable(crop, season, hasHouse) {
+  const c = CONFIG.crops[crop];
+  return c.seasons.includes(season) && (!c.needHouse || hasHouse);
+}
+function defaultPlan(g) {
+  const season = seasonId(g.seasonIdx);
+  const prev = g.history.length ? g.history[g.history.length - 1].plan : null;
+  return [0, 1, 2].map((i) => {
+    const base = prev ? { ...prev[i] } : { ...CONFIG.defaultPlot };
+    base.house = g.houses[i];
+    if (base.crop && !cropAvailable(base.crop, season, base.house)) {
+      base.crop = CONFIG.cropOrder.find((c) => cropAvailable(c, season, false));
+    }
+    if (!base.crop) base.house = g.houses[i];
+    return base;
+  });
+}
+function ctxOf(g) { return { seasonIdx: g.seasonIdx, money: g.money, houses: g.houses }; }
+
+// その選択肢が選べない理由（選べるなら空文字）
+function blockReason(g, plan, i, field, value) {
+  const season = seasonId(g.seasonIdx);
+  const p = plan[i];
+  if (field === 'crop') {
+    if (value) {
+      const c = CONFIG.crops[value];
+      if (!c.seasons.includes(season)) return `${c.name}は${CONFIG.seasons[g.seasonIdx].name}には植えられません（植えられるのは ${seasonsOf(value)}）。`;
+      if (c.needHouse && !p.house) return `${c.name}はハウスがないと作れません。先に栽培方法を「ハウス」にしてください。`;
+    }
+  } else if (field === 'house') {
+    if (!p.crop) return '作物を植えない区画では選べません。';
+    if (!value && g.houses[i]) return 'この区画にはもうハウスが建っています。';
+  } else if (!p.crop) {
+    return '作物を植えない区画では選べません。';
+  }
+  if (p[field] === value) return '';
+  const trial = plan.map((x) => ({ ...x }));
+  applyPick(g, trial, i, field, value);
+  const need = planCost(ctxOf(g), trial);
+  if (need > g.money && need > planCost(ctxOf(g), plan)) return `資金が足りません（あと${fmt(need - g.money)}万円必要）。`;
+  return '';
+}
+function applyPick(g, plan, i, field, value) {
+  const season = seasonId(g.seasonIdx);
+  const p = plan[i];
+  p[field] = value;
+  if (field === 'crop' && !value) p.house = g.houses[i];
+  if (field === 'house' && !value && p.crop && CONFIG.crops[p.crop].needHouse) {
+    p.crop = CONFIG.cropOrder.find((c) => cropAvailable(c, season, false));
+  }
+}
+
+function statusBar() {
+  const g = state.game;
+  if (!g) return '';
+  const s = CONFIG.seasons[Math.min(g.seasonIdx, 3)];
+  const houseN = g.houses.filter(Boolean).length;
+  return `<div class="bar">
+    <span>${s.icon} <b>${s.name}</b>（${Math.min(g.seasonIdx, 3) + 1}/4）</span><span class="sep">|</span>
+    <span>💰 資金 <b>${fmt(g.money)}</b>万円</span><span class="sep">|</span>
+    <span>🌏 環境 <b>${signed(g.env)}</b></span><span class="sep">|</span>
+    <span>🤝 地域 <b>${signed(g.region)}</b></span>
+    ${houseN ? `<span class="sep">|</span><span>🏠×${houseN}</span>` : ''}
+  </div>`;
+}
+
+const screens = {};
+
+screens.title = () => `
+  <div class="wrap" style="max-width:720px">
+    <div class="hero">
+      <div class="icons">🌿🥔🥬🍅🍓</div>
+      <h1>農家経営シミュレーション</h1>
+      <div class="muted">1年間農家を経営し、「利益」「環境」「地域」のバランスがよい農業を目指そう</div>
+    </div>
+    <div class="panel">
+      <label class="field">名前（出席番号）
+        <input id="name" type="text" autocomplete="off" maxlength="30" placeholder="例：12 山田" value="${esc(state.name)}">
+      </label>
+      <div class="field">プレイの回数
+        <div class="seg" style="margin-top:4px">
+          ${[1, 2].map((n) => `<button class="opt ${state.round === n ? 'on' : ''}" data-act="round" data-v="${n}"><span class="lb">${n}回目</span></button>`).join('')}
+        </div>
+      </div>
+      <label class="field">コード（先生から言われたときだけ）
+        <input id="code" type="text" autocomplete="off" maxlength="20" placeholder="空欄でOK" value="${esc(state.code)}">
+        <span class="small muted">同じコードを入れた人は、同じ天気・できごとの1年になります。</span>
+      </label>
+    </div>
+    <div class="btns">
+      <button class="btn" data-act="start">はじめる</button>
+      <button class="btn sub" data-act="howto">遊び方</button>
+    </div>
+  </div>`;
+
+screens.howto = () => {
+  const h = CONFIG.howto[state.howtoPage];
+  const last = state.howtoPage === CONFIG.howto.length - 1;
+  return `<div class="wrap" style="max-width:720px">
+    <h2>遊び方</h2>
+    <div class="panel howto">
+      <div class="big">${h.icon}</div>
+      <h2>${h.title}</h2>
+      <p>${h.text}</p>
+    </div>
+    <div class="dots">${CONFIG.howto.map((_, i) => (i === state.howtoPage ? '●' : '○')).join('')}</div>
+    <div class="btns">
+      ${last ? '<button class="btn" data-act="toTitle">タイトルへ</button>'
+        : `<button class="btn" data-act="howtoNext">次へ</button><button class="btn sub" data-act="toTitle">とばす</button>`}
+    </div>
+  </div>`;
+};
+
+screens.seasonStart = () => {
+  const g = state.game;
+  const s = CONFIG.seasons[g.seasonIdx];
+  const deck = CONFIG.deck[s.id];
+  const crops = CONFIG.cropOrder.filter((c) => CONFIG.crops[c].seasons.includes(s.id));
+  return `${statusBar()}<div class="wrap" style="max-width:860px">
+    <h1 class="center">${s.icon} ${s.name}がはじまりました</h1>
+    <div class="panel stack">
+      <h3>この季節に植えられる作物</h3>
+      <div class="crop-list">${crops.map((c) => `${CONFIG.crops[c].icon} ${CONFIG.crops[c].name}${CONFIG.crops[c].needHouse ? '（ハウスが必要）' : ''}`).join('　')}</div>
+      <h3>この季節に起きやすいこと（山札のカード）</h3>
+      <div class="deck">${CONFIG.eventOrder.filter((k) => deck[k] > 0).map((k) => {
+        const e = CONFIG.events[k];
+        return `<div class="ev">${e.icon} ${e.name} <b>×${deck[k]}</b></div>`;
+      }).join('')}</div>
+      <div class="small muted">数字はカードの枚数です。多いほど出やすくなります。季節の最後に、この中から1枚引きます。</div>
+      <div class="hint">💡 ${CONFIG.seasonHints[s.id]}</div>
+    </div>
+    <div class="btns"><button class="btn" data-act="toPlan">計画を立てる</button></div>
+  </div>`;
+};
+
+function segment(g, plan, i, field, items) {
+  return `<div class="seg n${items.length}"${items.length < 4 ? ` style="--n:${items.length}"` : ''}>${items.map((it) => {
+    const reason = blockReason(g, plan, i, field, it.value);
+    const on = plan[i][field] === it.value;
+    return `<button class="opt ${on ? 'on' : ''} ${reason && !on ? 'off' : ''}" data-act="pick" data-i="${i}" data-f="${field}" data-v="${it.value === null ? '' : it.value}" ${reason && !on ? `data-reason="${esc(reason)}"` : ''} aria-pressed="${on}">
+      <span class="lb">${it.label}</span>${it.note ? `<span class="nt">${it.note}</span>` : ''}</button>`;
+  }).join('')}</div>`;
+}
+function costNote(cost, env, extra) {
+  const parts = [];
+  parts.push(`費用${cost}`);
+  if (env) parts.push(`環境${env > 0 ? '+' : '−'}${Math.abs(env)}`);
+  if (extra) parts.push(extra);
+  return parts.join('・');
+}
+
+screens.plan = () => {
+  const g = state.game;
+  const plan = g.plan;
+  const season = seasonId(g.seasonIdx);
+  const ctx = ctxOf(g);
+  const total = planCost(ctx, plan);
+  const left = round1(g.money - total);
+  const over = total > g.money;
+  const cards = plan.map((p, i) => {
+    const pc = plotCost(ctx, p, i);
+    const cropItems = [...CONFIG.cropOrder.filter((c) => CONFIG.crops[c].seasons.includes(season)), null].map((c) => c
+      ? { value: c, label: `${CONFIG.crops[c].icon} ${CONFIG.crops[c].name}`, note: `費用${CONFIG.crops[c].cost}・売上${CONFIG.crops[c].sales}` }
+      : { value: null, label: '植えない', note: '費用0' });
+    const offSeason = CONFIG.cropOrder.filter((c) => !CONFIG.crops[c].seasons.includes(season));
+    const houseItems = [
+      { value: false, label: '<ruby>露地<rt>ろじ</rt></ruby>', note: '天候の影響を受ける' },
+      { value: true, label: '🏠 ハウス', note: g.houses[i] ? (season === 'winter' ? '建設済み・暖房2・環境−1' : '建設済み') : `建設${CONFIG.house.buildCost}${season === 'winter' ? '・暖房2・環境−1' : ''}` },
+    ];
+    const pestItems = CONFIG.pestOrder.map((k) => ({ value: k, label: CONFIG.pestOptions[k].label, note: costNote(CONFIG.pestOptions[k].cost, CONFIG.pestOptions[k].env, CONFIG.pestOptions[k].note) }));
+    const fertItems = CONFIG.fertOrder.map((k) => { const f = CONFIG.fertOptions[k]; return { value: k, label: f.label, note: costNote(f.cost, f.env, f.yield ? `収量+${pct(f.yield)}` : '') }; });
+    const shipItems = CONFIG.shipOrder.map((k) => { const s = CONFIG.shipOptions[k]; return { value: k, label: s.label, note: (s.region ? `地域+${s.region}・` : '') + s.note }; });
+    return `<div class="plot ${p.crop ? '' : 'empty'}">
+      <div class="plot-head"><h3>区画${i + 1} ${g.houses[i] ? '🏠' : ''}</h3>
+        ${i > 0 ? `<button class="mini" data-act="copyLeft" data-i="${i}">◀ 区画${i}と同じ</button>` : ''}</div>
+      <div class="row"><div class="rl">① 作物</div>${segment(g, plan, i, 'crop', cropItems)}
+        <div class="small muted" style="margin-top:2px">${p.crop ? CONFIG.crops[p.crop].note : ''}${offSeason.length ? `　この季節は植えられない：${offSeason.map((c) => CONFIG.crops[c].icon).join('')}` : ''}</div></div>
+      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">② 栽培方法</div>${segment(g, plan, i, 'house', houseItems)}</div>
+      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">③ 虫対策</div>${segment(g, plan, i, 'pest', pestItems)}</div>
+      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">④ 肥料</div>${segment(g, plan, i, 'fert', fertItems)}</div>
+      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">⑤ 出荷先</div>${segment(g, plan, i, 'ship', shipItems)}</div>
+      <div class="small" style="margin-top:8px;text-align:right">この区画の費用 <b>${fmt(pc.total)}</b>万円</div>
+    </div>`;
+  }).join('');
+  const nDirect = countDirect(plan);
+  return `${statusBar()}<div class="wrap">
+    <h2>${CONFIG.seasons[g.seasonIdx].icon} ${CONFIG.seasons[g.seasonIdx].name}の作付け計画</h2>
+    ${season === 'winter' ? `<div class="hint" style="margin-bottom:10px">💡 ${CONFIG.seasonHints.winter}</div>` : ''}
+    ${nDirect >= 2 ? `<div class="hint" style="margin-bottom:10px">🛒 直売所に${nDirect}区画出すと、売れ残る確率は${pct(CONFIG.direct.unsoldProb[nDirect])}です（1区画なら${pct(CONFIG.direct.unsoldProb[1])}）。</div>` : ''}
+    <div class="plots">${cards}</div>
+  </div>
+  <div class="foot">
+    <div class="money">費用合計 <b>${fmt(total)}</b>万円　残り資金 <b class="${over ? 'bad' : ''}">${fmt(left)}</b>万円</div>
+    ${over ? '<div class="bad">資金が足りません。選択を変えてください。</div>' : ''}
+    <button class="btn ${over ? 'off' : ''}" data-act="decide" ${over ? 'data-reason="資金が足りないので決定できません。"' : ''}>決定</button>
+  </div>`;
+};
+
+screens.event = () => {
+  const g = state.game;
+  const r = g.current;
+  const e = CONFIG.events[r.event];
+  return `${statusBar()}<div class="wrap" style="max-width:860px">
+    <h2 class="center">${CONFIG.seasons[g.seasonIdx].name}のイベントカード</h2>
+    <div class="card-stage" data-act="skipFlip">
+      <div class="card ${g.revealed ? 'shown' : 'flip'}">
+        <div class="face back">🌾</div>
+        <div class="face front"><div class="ei">${e.icon}</div><div class="en">${e.name}</div></div>
+      </div>
+    </div>
+    ${g.revealed ? `<p class="ev-text">${e.text}</p>
+      ${r.nDirect > 0 ? `<p class="ev-text">${r.unsold ? '🛒 直売所で売れ残りが出てしまった…（直売所の売上×0.7）' : '🛒 直売所はすべて売り切れた！'}</p>` : ''}
+      <div class="btns"><button class="btn" data-act="toResult">結果を見る</button></div>`
+      : '<p class="center muted">タップでとばせます</p>'}
+  </div>`;
+};
+
+function plotChips(p) {
+  const chips = [];
+  if (p.fertRate) chips.push(`<span class="chip up">肥料+${pct(p.fertRate)}</span>`);
+  if (p.weatherLoss) chips.push(`<span class="chip down">${CONFIG.events[state.game.current.event].name}−${pct(p.weatherLoss)}</span>`);
+  if (p.pestLoss) chips.push(`<span class="chip down">虫害−${pct(p.pestLoss)}</span>`);
+  if (!chips.length) chips.push('<span class="chip">被害なし</span>');
+  return chips.join('');
+}
+screens.result = () => {
+  const g = state.game;
+  const r = g.current;
+  const last = g.seasonIdx === 3;
+  const rows = r.plots.map((p, i) => {
+    if (p.empty) return `<tr><td>区画${i + 1}${p.house ? ' 🏠' : ''}</td><td colspan="3" class="muted">植えなかった</td><td class="num">−${fmt(p.cost)}</td><td class="num">0</td></tr>`;
+    const c = CONFIG.crops[p.crop];
+    return `<tr>
+      <td>区画${i + 1}${p.house ? ' 🏠' : ''}<br><b>${c.icon} ${c.name}</b></td>
+      <td><div class="chips">${plotChips(p)}</div><div class="small muted">収量 ${pct(p.yieldRate)}</div></td>
+      <td>${CONFIG.shipOptions[p.ship].name}<div class="small muted">${p.priceNote}</div></td>
+      <td class="small">${p.env ? `環境${signed(p.env)}` : ''}${p.region ? ` 地域${signed(p.region)}` : ''}</td>
+      <td class="num">−${fmt(p.cost)}</td>
+      <td class="num"><b>+${fmt(p.sales)}</b></td></tr>`;
+  }).join('');
+  const net = round1(r.money - r.moneyBefore);
+  return `${statusBar()}<div class="wrap" style="max-width:1000px">
+    <h2>${CONFIG.seasons[g.seasonIdx].icon} ${CONFIG.seasons[g.seasonIdx].name}の結果　${CONFIG.events[r.event].icon} ${CONFIG.events[r.event].name}</h2>
+    <div class="panel" style="overflow-x:auto">
+      <table>
+        <tr><th>区画</th><th>収量の内訳</th><th>出荷先</th><th>環境・地域</th><th class="num">費用</th><th class="num">売上</th></tr>
+        ${rows}
+        ${r.bonusMoney ? `<tr><td colspan="4">🍱 給食センターからの依頼（地域+${r.bonusRegion}）</td><td></td><td class="num"><b>+${fmt(r.bonusMoney)}</b></td></tr>` : ''}
+      </table>
+      <div class="small muted" style="margin-top:6px">売上 ＝ 基本売上 × 収量 × 価格の倍率（万円）</div>
+    </div>
+    <div class="summary" style="margin-top:12px">
+      <div class="box"><div class="k">資金</div><div class="v">${fmt(r.moneyBefore)} → ${fmt(r.money)}</div><div class="${net >= 0 ? 'plus' : 'minus'}">${signed(net)}万円</div></div>
+      <div class="box"><div class="k">🌏 環境ポイント</div><div class="v ${r.env > 0 ? 'plus' : r.env < 0 ? 'minus' : ''}">${signed(r.env)}</div><div class="small muted">合計 ${signed(g.env)}</div></div>
+      <div class="box"><div class="k">🤝 地域ポイント</div><div class="v ${r.region > 0 ? 'plus' : ''}">${signed(r.region)}</div><div class="small muted">合計 ${signed(g.region)}</div></div>
+    </div>
+    <div class="btns"><button class="btn" data-act="${last ? 'toFinal' : 'nextSeason'}">${last ? '最終結果へ' : '次の季節へ'}</button></div>
+  </div>`;
+};
+
+function radarSVG(sc) {
+  const W = 340, R = 100, cx = W / 2, cy = R + 32, H = cy + R / 2 + 34;
+  const axes = [
+    { k: 'P', label: '💰 利益', color: 'var(--profit)' },
+    { k: 'E', label: '🌏 環境', color: 'var(--env)' },
+    { k: 'R', label: '🤝 地域', color: 'var(--region)' },
+  ];
+  const ang = (i) => -Math.PI / 2 + i * 2 * Math.PI / 3;
+  const pt = (i, v) => [cx + Math.cos(ang(i)) * R * v / 100, cy + Math.sin(ang(i)) * R * v / 100];
+  let grid = '';
+  for (let v = 20; v <= 100; v += 20) {
+    grid += `<polygon points="${axes.map((_, i) => pt(i, v).join(',')).join(' ')}" fill="none" stroke="#d8d2bf" stroke-width="${v === 100 ? 1.5 : 1}"/>`;
+  }
+  grid += axes.map((_, i) => `<line x1="${cx}" y1="${cy}" x2="${pt(i, 100)[0]}" y2="${pt(i, 100)[1]}" stroke="#d8d2bf"/>`).join('');
+  const ticks = [20, 40, 60, 80, 100].map((v) => `<text x="${cx + 4}" y="${cy - R * v / 100 + 4}" font-size="10" fill="#8a8572">${v}</text>`).join('');
+  const poly = axes.map((a, i) => pt(i, sc[a.k]).join(',')).join(' ');
+  const labels = axes.map((a, i) => {
+    const [x, y] = pt(i, 100);
+    const anchor = i === 0 ? 'middle' : i === 1 ? 'start' : 'end';
+    const ly = i === 0 ? y - 10 : y + 24;
+    const lx = i === 0 ? x : x + (i === 1 ? -40 : 40);
+    return `<text x="${lx}" y="${ly}" text-anchor="${anchor}" font-size="16" font-weight="bold" fill="${a.color}">${a.label} ${sc[a.k]}</text>`;
+  }).join('');
+  const dots = axes.map((a, i) => `<circle cx="${pt(i, sc[a.k])[0]}" cy="${pt(i, sc[a.k])[1]}" r="5" fill="${a.color}"/>`).join('');
+  return `<svg class="radar" viewBox="0 0 ${W} ${H}" role="img" aria-label="利益${sc.P}点、環境${sc.E}点、地域${sc.R}点">
+    ${grid}${ticks}<polygon points="${poly}" fill="rgba(47,125,50,.25)" stroke="var(--accent)" stroke-width="2.5"/>${dots}${labels}</svg>`;
+}
+
+screens.final = () => {
+  const g = state.game;
+  const sc = finalScore(g.money, g.env, g.region);
+  const cm = makeComments(g.history, sc);
+  const d = g.finishedAt;
+  const date = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  const S = CONFIG.score;
+  const logRows = g.history.map((h) => {
+    const s = CONFIG.seasons[h.result.seasonIdx];
+    const e = CONFIG.events[h.result.event];
+    const cells = h.result.plots.map((p) => p.empty ? '<td class="muted">―</td>'
+      : `<td>${CONFIG.crops[p.crop].icon}${p.house ? '🏠' : ''} ${CONFIG.pestOptions[p.pest].short}・${CONFIG.fertOptions[p.fert].short}・${CONFIG.shipOptions[p.ship].short}</td>`).join('');
+    return `<tr><td>${s.name}</td><td>${e.icon}</td>${cells}</tr>`;
+  }).join('');
+  return `<div class="wrap">
+    <div class="final" style="margin-top:4px">
+      <div class="panel">
+        <div class="who"><b>${esc(state.name || '（名前なし）')}</b><span>${state.round}回目</span><span>${date}</span>${state.code.trim() ? `<span>コード ${esc(state.code.trim())}</span>` : ''}</div>
+        <div class="score-box">${radarSVG(sc)}
+        <table class="scores">
+          <tr><td>💰 利益点<div class="muted">${S.profit.formula}<br>利益 ${signed(sc.profit)}万円</div></td><td class="pt">${sc.P}</td></tr>
+          <tr><td>🌏 環境点<div class="muted">${S.env.formula}<br>環境ポイント ${signed(sc.env)}</div></td><td class="pt">${sc.E}</td></tr>
+          <tr><td>🤝 地域点<div class="muted">${S.region.formula}<br>地域ポイント ${signed(sc.region)}</div></td><td class="pt">${sc.R}</td></tr>
+        </table></div>
+      </div>
+      <div class="stack">
+        <div class="panel total">
+          <div class="small muted">持続可能な農業スコア（300点満点）</div>
+          <div class="t">${sc.total}<span style="font-size:22px">点</span></div>
+          <div class="rank">🏅 ${sc.rank}</div>
+        </div>
+        <div class="panel">
+          <h3>ふりかえり</h3>
+          <ul class="comments">${cm.list.map((t) => `<li>${t}</li>`).join('')}</ul>
+          <div class="next">➡ ${cm.hint}</div>
+        </div>
+        <div class="panel" style="overflow-x:auto">
+          <table class="log"><tr><th>季節</th><th>できごと</th><th>区画1</th><th>区画2</th><th>区画3</th></tr>${logRows}</table>
+          <div class="small muted">表の見方：作物 虫対策・肥料・出荷先　最終資金 ${fmt(g.money)}万円</div>
+        </div>
+      </div>
+    </div>
+    <div class="btns" style="margin:10px 0 0"><button class="btn" data-act="again">もう一度（タイトルへ）</button></div>
+  </div>`;
+};
+
+let flipTimer = null;
+function render() {
+  const fn = screens[state.screen];
+  document.body.classList.toggle('final-page', state.screen === 'final');
+  app.innerHTML = fn();
+  if (state.screen === 'event' && !state.game.revealed) {
+    clearTimeout(flipTimer);
+    flipTimer = setTimeout(() => { if (state.screen === 'event') { state.game.revealed = true; render(); } }, 850);
+  }
+}
+function go(screen) { state.screen = screen; render(); window.scrollTo(0, 0); }
+
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+const actions = {
+  round: (el) => { state.round = Number(el.dataset.v); render(); },
+  howto: () => { state.howtoPage = 0; go('howto'); },
+  howtoNext: () => { state.howtoPage++; render(); },
+  toTitle: () => go('title'),
+  start: () => { state.game = newGame(); go('seasonStart'); },
+  toPlan: () => { const g = state.game; g.plan = defaultPlan(g); go('plan'); },
+  pick: (el) => {
+    const g = state.game;
+    const f = el.dataset.f;
+    let v = el.dataset.v;
+    if (f === 'crop') v = v || null;
+    if (f === 'house') v = v === 'true';
+    applyPick(g, g.plan, Number(el.dataset.i), f, v);
+    render();
+  },
+  copyLeft: (el) => {
+    const g = state.game;
+    const i = Number(el.dataset.i);
+    const src = g.plan[i - 1];
+    const p = { ...src, house: g.houses[i] || src.house };
+    if (!p.crop) p.house = g.houses[i];
+    g.plan[i] = p;
+    if (planCost(ctxOf(g), g.plan) > g.money) toast('このままだと資金が足りません。どこかの選択を変えてください。');
+    render();
+  },
+  decide: () => {
+    const g = state.game;
+    const ctx = ctxOf(g);
+    if (planCost(ctx, g.plan) > g.money) return;
+    const ev = drawEvent(seasonId(g.seasonIdx), g.rngEv);
+    const unsold = drawUnsold(countDirect(g.plan), ev, g.rngMisc);
+    const r = computeSeason(ctx, g.plan, ev, unsold);
+    g.current = r;
+    g.history.push({ plan: g.plan.map((p) => ({ ...p })), result: r });
+    g.money = r.money; g.env += r.env; g.region += r.region; g.houses = r.houses;
+    g.revealed = false;
+    go('event');
+  },
+  skipFlip: () => { const g = state.game; if (!g.revealed) { g.revealed = true; clearTimeout(flipTimer); render(); } },
+  toResult: () => go('result'),
+  nextSeason: () => { state.game.seasonIdx++; go('seasonStart'); },
+  toFinal: () => { state.game.finishedAt = new Date(); go('final'); },
+  again: () => { state.round = 2; state.game = null; go('title'); },
+};
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  if (el.dataset.reason) { toast(el.dataset.reason); return; }
+  const fn = actions[el.dataset.act];
+  if (fn) fn(el);
+});
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'name') state.name = e.target.value;
+  if (e.target.id === 'code') state.code = e.target.value;
+});
+window.addEventListener('beforeunload', (e) => {
+  if (state.game && state.screen !== 'final') { e.preventDefault(); e.returnValue = ''; }
+});
+
+/* =========================================================================
+ * 6. DEBUG  ― ?test=1 検算テスト、?sim=2000 バランス試算（授業では使わない）
+ * ========================================================================= */
+function P(crop, house, pest, fert, ship) { return { crop, house, pest, fert, ship }; }
+const EMPTY = () => P(null, false, 'none', 'none', 'market');
+
+function runTests() {
+  const out = [];
+  const near = (a, b) => Math.abs(a - b) < 1e-6;
+  const check = (name, cond, detail) => out.push({ name, ok: !!cond, detail: detail || '' });
+  const H0 = [false, false, false];
+  // 検算例1
+  let r = computeSeason({ seasonIdx: 0, money: 30, houses: H0 }, [P('cabbage', false, 'net', 'compost', 'direct'), EMPTY(), EMPTY()], 'pest', false);
+  check('例1 春キャベツ・ネット・堆肥・直売所／害虫大発生', near(r.plots[0].yieldRate, 0.715) && r.sales === 6.0 && r.cost === 5 && r.env === 1 && r.region === 1,
+    `収量${r.plots[0].yieldRate.toFixed(3)} 売上${r.sales} 費用${r.cost} 環境${r.env} 地域${r.region}`);
+  // 検算例2
+  r = computeSeason({ seasonIdx: 1, money: 30, houses: H0 }, [P('tomato', false, 'none', 'none', 'process'), EMPTY(), EMPTY()], 'rain', false);
+  check('例2 夏ミニトマト・露地・対策なし・加工／長雨', near(r.plots[0].yieldRate, 0.4) && r.sales === 5.6 && r.cost === 4 && r.env === 0 && r.region === 1,
+    `収量${r.plots[0].yieldRate.toFixed(3)} 売上${r.sales} 費用${r.cost} 環境${r.env} 地域${r.region}`);
+  // 検算例3
+  r = computeSeason({ seasonIdx: 3, money: 30, houses: H0 }, [P('strawberry', true, 'none', 'chem', 'market'), EMPTY(), EMPTY()], 'high', false);
+  check('例3 冬いちご・ハウス新設・化学肥料・市場／価格高騰', near(r.plots[0].yieldRate, 1.2) && r.sales === 27.0 && r.cost === 15 && r.env === -2 && r.region === 0 && r.houses[0],
+    `収量${r.plots[0].yieldRate.toFixed(3)} 売上${r.sales} 費用${r.cost} 環境${r.env} 地域${r.region}`);
+  // 境界：植えない区画
+  r = computeSeason({ seasonIdx: 0, money: 30, houses: H0 }, [EMPTY(), EMPTY(), EMPTY()], 'school', false);
+  check('植えない区画は費用・売上・点数0（給食も対象外）', r.cost === 0 && r.sales === 0 && r.bonusMoney === 0 && r.env === 0 && r.region === 0 && r.money === 30);
+  // 境界：冬の虫対策
+  r = computeSeason({ seasonIdx: 3, money: 30, houses: H0 }, [P('spinach', false, 'chem', 'none', 'contract'), EMPTY(), EMPTY()], 'normal', false);
+  check('冬の虫対策は費用と環境値だけかかり効果0', r.cost === 3 && r.env === -2 && r.plots[0].pestLoss === 0 && r.sales === 5);
+  // 境界：資金不足
+  const g = { seasonIdx: 0, money: 5, houses: H0, plan: null, history: [] };
+  g.plan = [P('cabbage', false, 'none', 'none', 'market'), EMPTY(), EMPTY()];
+  const reason = blockReason(g, g.plan, 0, 'pest', 'chem');
+  check('資金不足（5万円でキャベツ3＋ハウス6）は選べない', blockReason(g, g.plan, 0, 'house', true) !== '' && reason === '', `農薬:${reason || 'OK'}`);
+  // 境界：いちごはハウスがないと選べない
+  g.seasonIdx = 3; g.money = 30; g.plan = [P('spinach', false, 'none', 'none', 'market'), EMPTY(), EMPTY()];
+  check('いちごはハウスなしでは選べない', blockReason(g, g.plan, 0, 'crop', 'strawberry') !== '');
+  // 境界：建設済みハウスは費用0・露地に戻せない
+  const hb = [true, false, false];
+  r = computeSeason({ seasonIdx: 3, money: 30, houses: hb }, [P('strawberry', true, 'none', 'none', 'market'), EMPTY(), EMPTY()], 'normal', false);
+  check('建設済みハウスは建設費なし（いちご6＋暖房2）', r.cost === 8 && r.env === -1);
+  // 直売所の売れ残りとスーパー
+  r = computeSeason({ seasonIdx: 0, money: 30, houses: H0 }, [P('spinach', false, 'chem', 'none', 'direct'), EMPTY(), EMPTY()], 'normal', true);
+  check('直売所の売れ残りは×0.7', r.sales === round1(5 * 1.2 * 0.7));
+  check('地元スーパーなら売れ残りなし', drawUnsold(3, 'super', () => 0) === false && drawUnsold(3, 'normal', () => 0) === true && drawUnsold(0, 'normal', () => 0) === false);
+  // 同じシードで同じ結果
+  const pol = POLICIES[1].fn;
+  const a = playYear(pol, mulberry32(42), mulberry32(43));
+  const b = playYear(pol, mulberry32(42), mulberry32(43));
+  check('同じシードで同じ結果', JSON.stringify(a) === JSON.stringify(b), `合計${a.total}`);
+  // スコア換算
+  const s = finalScore(55, -10, 9);
+  check('スコア換算（利益25→50、環境−10→67、地域9→58）', s.P === 50 && s.E === 67 && s.R === 58 && s.total === 175 && s.rank === '一人前の農家');
+  return out;
+}
+
+// 計画書「試算結果」の戦略（Python版 final_eval.py と同じ）
+function fixedPolicy(spring, autumn, pm, fert, ships, hn = 0, hs = 3) {
+  return (si, houses) => [0, 1, 2].map((i) => {
+    const season = seasonId(si);
+    let crop = ['', 'tomato', '', 'spinach'][si] || (si === 0 ? spring : autumn);
+    const house = houses[i] || (si >= hs && i < hn);
+    if (si === 3 && i < hn) crop = 'strawberry';
+    const pest = season === 'winter' ? 'none' : (pm[crop] || 'none');
+    return { crop, house, pest, fert, ship: ships[i] };
+  });
+}
+function randomPolicy(si, houses, money, rng) {
+  const season = seasonId(si);
+  const pick = (arr) => arr[Math.floor(rng() * arr.length)];
+  return [0, 1, 2].map((i) => {
+    const opts = CONFIG.cropOrder.filter((c) => cropAvailable(c, season, houses[i]));
+    let crop = rng() < 0.9 ? pick([...opts, null]) : null;
+    crop = crop || (rng() < 0.7 ? opts[0] : null);
+    return { crop, house: houses[i], pest: pick(['chem', 'net', 'none']), fert: pick(['chem', 'compost', 'none']), ship: pick(['market', 'direct', 'contract', 'process']) };
+  });
+}
+const POLICIES = [
+  { name: '環境・地域：虫対策なし＋堆肥＋直売所1・加工2', exp: [43, 85, 66, 193], fn: fixedPolicy('potato', 'spinach', {}, 'compost', ['direct', 'process', 'process']) },
+  { name: 'バランス：キャベツだけ農薬＋堆肥＋市場・直売所・加工', exp: [52, 80, 58, 190], fn: fixedPolicy('potato', 'cabbage', { cabbage: 'chem' }, 'compost', ['market', 'direct', 'process']) },
+  { name: 'バランス：ネット＋堆肥＋契約・直売所・加工＋ハウス1棟', exp: [45, 84, 58, 187], fn: fixedPolicy('potato', 'cabbage', { cabbage: 'net', tomato: 'net' }, 'compost', ['contract', 'direct', 'process'], 1, 1) },
+  { name: '環境重視：ネット＋堆肥＋3区画とも直売所', exp: [29, 85, 66, 179], fn: fixedPolicy('cabbage', 'cabbage', { cabbage: 'net', tomato: 'net', spinach: 'net', potato: 'net' }, 'compost', ['direct', 'direct', 'direct']) },
+  { name: '何もしない：対策なし・肥料なし・市場', exp: [57, 75, 42, 174], fn: fixedPolicy('potato', 'spinach', {}, 'none', ['market', 'market', 'market']) },
+  { name: '利益重視＋ハウス1棟で冬にいちご', exp: [80, 50, 42, 172], fn: fixedPolicy('cabbage', 'cabbage', { cabbage: 'chem', tomato: 'chem' }, 'chem', ['market', 'market', 'market'], 1, 1) },
+  { name: '利益重視：農薬＋化学肥料＋市場', exp: [76, 51, 42, 169], fn: fixedPolicy('cabbage', 'cabbage', { cabbage: 'chem', tomato: 'chem' }, 'chem', ['market', 'market', 'market']) },
+  { name: 'でたらめに選ぶ', exp: [40, 69, 52, 162], fn: randomPolicy },
+];
+function runSim(n) {
+  return POLICIES.map((pol, k) => {
+    const rngEv = mulberry32(1000 + k), rngMisc = mulberry32(5000 + k);
+    const xs = [];
+    for (let j = 0; j < n; j++) xs.push(playYear(pol.fn, rngEv, rngMisc));
+    const mean = (f) => xs.reduce((s, x) => s + f(x), 0) / n;
+    const tot = xs.map((x) => x.total).sort((a, b) => a - b);
+    return { pol, P: mean((x) => x.P), E: mean((x) => x.E), R: mean((x) => x.R), T: mean((x) => x.total), lo: tot[Math.floor(n / 10)], hi: tot[Math.floor(9 * n / 10)] };
+  });
+}
+function debugPage(title, body) {
+  app.innerHTML = `<div class="wrap debug"><h2>${title}</h2>${body}<p><a href="./">ゲームにもどる</a></p></div>`;
+}
+function renderTests() {
+  const res = runTests();
+  const ok = res.filter((r) => r.ok).length;
+  debugPage(`検算テスト：${ok}/${res.length} 合格`, `<table><tr><th>テスト</th><th>結果</th><th>詳細</th></tr>${res.map((r) =>
+    `<tr><td>${r.name}</td><td class="${r.ok ? 'ok' : 'ng'}">${r.ok ? '合格' : '不合格'}</td><td>${esc(r.detail)}</td></tr>`).join('')}</table>`);
+  document.title = `TEST ${ok}/${res.length}`;
+}
+function renderSim(n) {
+  const rows = runSim(n);
+  const cell = (v, e) => { const d = v - e; return `<td class="num ${Math.abs(d) <= 3 ? 'ok' : 'ng'}">${v.toFixed(1)}<br><span class="small">計画${e}（${d >= 0 ? '+' : ''}${d.toFixed(1)}）</span></td>`; };
+  const allOk = rows.every((r) => [r.P, r.E, r.R, r.T].every((v, i) => Math.abs(v - r.pol.exp[i]) <= 3));
+  debugPage(`バランス試算（各${n}回）：${allOk ? '計画書と±3以内' : '計画書とずれあり'}`,
+    `<table><tr><th>戦略</th><th>利益点</th><th>環境点</th><th>地域点</th><th>合計</th><th>幅（下位10%〜上位10%）</th></tr>${rows.map((r) =>
+      `<tr><td>${r.pol.name}</td>${cell(r.P, r.pol.exp[0])}${cell(r.E, r.pol.exp[1])}${cell(r.R, r.pol.exp[2])}${cell(r.T, r.pol.exp[3])}<td class="num">${r.lo}〜${r.hi}</td></tr>`).join('')}</table>`);
+  document.title = `SIM ${allOk ? 'OK' : 'NG'}`;
+}
+
+/* 起動 */
+if (params.get('test')) renderTests();
+else if (params.get('sim')) renderSim(Math.max(100, Number(params.get('sim')) || 2000));
+else render();
+</script>
+</body>
+</html>
