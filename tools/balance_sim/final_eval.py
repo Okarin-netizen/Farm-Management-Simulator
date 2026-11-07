@@ -3,7 +3,7 @@ from sim import *
 CFG['pest_base']={'default':0.20,'cabbage':0.40,'potato':0.10}
 CFG['pest_out']={'default':0.50,'cabbage':0.70,'potato':0.25}
 CFG['pest_cost']['net']=1
-CFG.update({"house_cost":6,"direct_unsold":[0,0.2,0.5,0.8]})
+CFG.update({"house_cost":8,"house_net_factor":0.25,"direct_unsold":[0,0.2,0.5,0.8]})
 S=dict(pa=0,pb=2,ea=75,eb=0.8,ra=40,rb=2)
 def sc(pr,e,r):
     P=max(0,min(100,S['pa']+S['pb']*pr)); E=max(0,min(100,S['ea']+S['eb']*e)); R=max(0,min(100,S['ra']+S['rb']*r)); return P,E,R,P+E+R

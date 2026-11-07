@@ -277,7 +277,7 @@ const CONFIG = {
   },
   cropOrder: ['spinach', 'potato', 'cabbage', 'tomato', 'strawberry'],
   house: {
-    buildCost: 6,   // 区画ごとに1回（設定書10→6）
+    buildCost: 8,   // 区画ごとに1回（設定書10→計画6→8。6だとハウス3棟＋冬いちご3区画が一強になる）
     heatCost: 2,    // 冬にハウスで作付けすると暖房費
     heatEnv: -1,    // 冬の暖房による環境ポイント
   },
@@ -289,7 +289,8 @@ const CONFIG = {
   },
   pestOptions: {
     chem: { name: '化学農薬',  label: '化学<ruby>農薬<rt>のうやく</rt></ruby>', short: '農薬',   cost: 1, env: -2, factor: 0,   note: '虫害なし' },
-    net:  { name: '防虫ネット', label: '<ruby>防虫<rt>ぼうちゅう</rt></ruby>ネット', short: 'ネット', cost: 1, env: 0,  factor: 0.5, note: '虫害半分' },
+    // ハウスの開口部をネットでふさげるので、ハウス区画ではネットの効果が大きい（houseFactor）
+    net:  { name: '防虫ネット', label: '<ruby>防虫<rt>ぼうちゅう</rt></ruby>ネット', short: 'ネット', cost: 1, env: 0,  factor: 0.5, houseFactor: 0.25, note: '虫害半分', houseNote: '虫害4分の1（ハウス）' },
     none: { name: '何もしない', label: '何もしない', short: 'なし', cost: 0, env: 0, factor: 1, note: '' },
   },
   pestOrder: ['chem', 'net', 'none'],
@@ -405,11 +406,13 @@ function weatherLoss(evId, crop, house) {
   if (house) l *= ev.houseFactor;
   return l;
 }
-function pestLoss(evId, season, crop, pest) {
+// ハウスだけでは虫害は減らない（ハウス内は虫が増えやすい）。ハウス＋防虫ネットはネットの効果が大きくなる
+function pestLoss(evId, season, crop, pest, house) {
   if (CONFIG.pestDamage.noPestSeasons.includes(season)) return 0;
   const tbl = CONFIG.events[evId].outbreak ? CONFIG.pestDamage.outbreak : CONFIG.pestDamage.normal;
   const l = (crop in tbl) ? tbl[crop] : tbl.default;
-  return l * CONFIG.pestOptions[pest].factor;
+  const o = CONFIG.pestOptions[pest];
+  return l * ((house && o.houseFactor != null) ? o.houseFactor : o.factor);
 }
 // ctx: { seasonIdx, money, houses:[bool] }  plan: [{crop|null, house:bool, pest, fert, ship}]
 function plotCost(ctx, p, i) {
@@ -446,7 +449,7 @@ function computeSeason(ctx, plan, evId, unsold) {
     const ship = CONFIG.shipOptions[p.ship];
     const y0 = 1 + fert.yield;
     const wl = weatherLoss(evId, p.crop, house);
-    const pl = pestLoss(evId, season, p.crop, p.pest);
+    const pl = pestLoss(evId, season, p.crop, p.pest, house);
     const y = y0 * (1 - wl) * (1 - pl);
     let s, priceNote;
     if (p.ship === 'market') {
@@ -794,7 +797,7 @@ screens.plan = () => {
       { value: false, label: '<ruby>露地<rt>ろじ</rt></ruby>', note: '天候の影響を受ける' },
       { value: true, label: '🏠 ハウス', note: g.houses[i] ? (season === 'winter' ? `建設済み・暖房費${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : '建設済み') : `建設費${CONFIG.house.buildCost}${season === 'winter' ? `・暖房費${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : ''}` },
     ];
-    const pestItems = CONFIG.pestOrder.map((k) => { const o = CONFIG.pestOptions[k]; return { value: k, label: o.label, note: costNote(o.cost, o.env, o.note), tone: o.env ? 'env' : '' }; });
+    const pestItems = CONFIG.pestOrder.map((k) => { const o = CONFIG.pestOptions[k]; return { value: k, label: o.label, note: costNote(o.cost, o.env, (p.house && o.houseNote) ? o.houseNote : o.note), tone: o.env ? 'env' : '' }; });
     const fertItems = CONFIG.fertOrder.map((k) => { const f = CONFIG.fertOptions[k]; return { value: k, label: f.label, note: costNote(f.cost, f.env, f.yield ? `収量+${pct(f.yield)}` : ''), tone: f.env ? 'env' : '' }; });
     const shipItems = CONFIG.shipOrder.map((k) => { const s = CONFIG.shipOptions[k]; return { value: k, label: s.label, note: (s.region ? `地域+${s.region}・` : '') + s.note, tone: s.region ? 'region' : 'profit' }; });
     return `<div class="plot ${p.crop ? '' : 'empty'}">
@@ -857,7 +860,7 @@ function seasonLessons(r) {
   const out = [];
   const ps = r.plots.filter((p) => !p.empty);
   const ev = CONFIG.events[r.event];
-  if (ps.some((p) => p.pestLoss > 0 && p.pest === 'none')) out.push('虫対策をしなかった区画が虫に食べられました。防虫ネットなら環境点を下げずに被害を半分にできます。');
+  if (ps.some((p) => p.pestLoss > 0 && p.pest === 'none')) out.push('虫対策をしなかった区画が虫に食べられました。防虫ネットなら環境点を下げずに被害を半分（ハウスなら4分の1）にできます。');
   else if (r.event === 'pest' && ps.some((p) => p.pest !== 'none')) out.push('虫対策をしていたので、害虫の大発生でも被害をおさえられました。');
   if (ps.some((p) => p.weatherLoss > 0 && !p.house)) out.push(`${ev.name}で露地の作物が被害を受けました。ハウスなら天候の被害を半分にできます（建設費がかかります）。`);
   if (ev.marketMult && ev.marketMult < 1 && ps.some((p) => p.ship === 'market')) out.push('値崩れで市場の価格が下がりました。契約出荷なら価格が変わりません。');
@@ -1079,8 +1082,14 @@ function runTests() {
     `収量${r.plots[0].yieldRate.toFixed(3)} 売上${r.sales} 費用${r.cost} 環境${r.env} 地域${r.region}`);
   // 検算例3
   r = computeSeason({ seasonIdx: 3, money: 30, houses: H0 }, [P('strawberry', true, 'none', 'chem', 'market'), EMPTY(), EMPTY()], 'high', false);
-  check('例3 冬いちご・ハウス新設・化学肥料・市場／価格高騰', near(r.plots[0].yieldRate, 1.2) && r.sales === 27.0 && r.cost === 15 && r.env === -2 && r.region === 0 && r.houses[0],
+  check('例3 冬いちご・ハウス新設・化学肥料・市場／価格高騰', near(r.plots[0].yieldRate, 1.2) && r.sales === 27.0 && r.cost === 17 && r.env === -2 && r.region === 0 && r.houses[0],
     `収量${r.plots[0].yieldRate.toFixed(3)} 売上${r.sales} 費用${r.cost} 環境${r.env} 地域${r.region}`);
+  // ハウスと虫害：ハウスだけでは減らない／ハウス＋ネットは4分の1
+  const HH = [true, false, false];
+  r = computeSeason({ seasonIdx: 1, money: 30, houses: HH }, [P('tomato', true, 'none', 'none', 'contract'), P('tomato', false, 'net', 'none', 'contract'), P('tomato', true, 'net', 'none', 'contract')], 'pest', false);
+  check('ハウス単独は虫害そのまま、露地ネットは半分、ハウス＋ネットは4分の1（害虫大発生）',
+    near(r.plots[0].pestLoss, 0.5) && near(r.plots[1].pestLoss, 0.25) && near(r.plots[2].pestLoss, 0.125),
+    `ハウスのみ${r.plots[0].pestLoss} 露地ネット${r.plots[1].pestLoss} ハウス＋ネット${r.plots[2].pestLoss}`);
   // 境界：植えない区画
   r = computeSeason({ seasonIdx: 0, money: 30, houses: H0 }, [EMPTY(), EMPTY(), EMPTY()], 'school', false);
   check('植えない区画は費用・売上・点数0（給食も対象外）', r.cost === 0 && r.sales === 0 && r.bonusMoney === 0 && r.env === 0 && r.region === 0 && r.money === 30);
@@ -1091,7 +1100,7 @@ function runTests() {
   const g = { seasonIdx: 0, money: 5, houses: H0, plan: null, history: [] };
   g.plan = [P('cabbage', false, 'none', 'none', 'market'), EMPTY(), EMPTY()];
   const reason = blockReason(g, g.plan, 0, 'pest', 'chem');
-  check('資金不足（5万円でキャベツ3＋ハウス6）は選べない', blockReason(g, g.plan, 0, 'house', true) !== '' && reason === '', `農薬:${reason || 'OK'}`);
+  check('資金不足（5万円でキャベツ3＋ハウス8）は選べない', blockReason(g, g.plan, 0, 'house', true) !== '' && reason === '', `農薬:${reason || 'OK'}`);
   // 境界：いちごはハウスがないと選べない
   g.seasonIdx = 3; g.money = 30; g.plan = [P('spinach', false, 'none', 'none', 'market'), EMPTY(), EMPTY()];
   check('いちごはハウスなしでは選べない', blockReason(g, g.plan, 0, 'crop', 'strawberry') !== '');
@@ -1138,10 +1147,10 @@ function randomPolicy(si, houses, money, rng) {
 const POLICIES = [
   { name: '環境・地域：虫対策なし＋堆肥＋直売所1・加工2', exp: [43, 85, 66, 193], fn: fixedPolicy('potato', 'spinach', {}, 'compost', ['direct', 'process', 'process']) },
   { name: 'バランス：キャベツだけ農薬＋堆肥＋市場・直売所・加工', exp: [52, 80, 58, 190], fn: fixedPolicy('potato', 'cabbage', { cabbage: 'chem' }, 'compost', ['market', 'direct', 'process']) },
-  { name: 'バランス：ネット＋堆肥＋契約・直売所・加工＋ハウス1棟', exp: [45, 84, 58, 187], fn: fixedPolicy('potato', 'cabbage', { cabbage: 'net', tomato: 'net' }, 'compost', ['contract', 'direct', 'process'], 1, 1) },
+  { name: 'バランス：ネット＋堆肥＋契約・直売所・加工＋ハウス1棟', exp: [44, 84, 58, 186], fn: fixedPolicy('potato', 'cabbage', { cabbage: 'net', tomato: 'net' }, 'compost', ['contract', 'direct', 'process'], 1, 1) },
   { name: '環境重視：ネット＋堆肥＋3区画とも直売所', exp: [29, 85, 66, 179], fn: fixedPolicy('cabbage', 'cabbage', { cabbage: 'net', tomato: 'net', spinach: 'net', potato: 'net' }, 'compost', ['direct', 'direct', 'direct']) },
   { name: '何もしない：対策なし・肥料なし・市場', exp: [57, 75, 42, 174], fn: fixedPolicy('potato', 'spinach', {}, 'none', ['market', 'market', 'market']) },
-  { name: '利益重視＋ハウス1棟で冬にいちご', exp: [80, 50, 42, 172], fn: fixedPolicy('cabbage', 'cabbage', { cabbage: 'chem', tomato: 'chem' }, 'chem', ['market', 'market', 'market'], 1, 1) },
+  { name: '利益重視＋ハウス1棟で冬にいちご', exp: [77, 50, 42, 169], fn: fixedPolicy('cabbage', 'cabbage', { cabbage: 'chem', tomato: 'chem' }, 'chem', ['market', 'market', 'market'], 1, 1) },
   { name: '利益重視：農薬＋化学肥料＋市場', exp: [76, 51, 42, 169], fn: fixedPolicy('cabbage', 'cabbage', { cabbage: 'chem', tomato: 'chem' }, 'chem', ['market', 'market', 'market']) },
   { name: 'でたらめに選ぶ', exp: [40, 69, 52, 162], fn: randomPolicy },
 ];
