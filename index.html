@@ -44,6 +44,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 button { font: inherit; color: inherit; }
+ruby { ruby-align: center; } /* ふりがなが長くても漢字の間をあけない */
 rt { font-size: 0.55em; }
 .wrap { max-width: 1280px; margin: 0 auto; padding: 12px 16px 120px; }
 h1 { font-size: 30px; margin: 8px 0 4px; }
@@ -125,12 +126,14 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .seg.n4 { --n: 2; }
 @media (max-width: 899px) and (min-width: 560px) { .seg.n4 { --n: 4; } }
 .seg .opt {
-  min-width: 0; min-height: var(--tap); padding: 4px 6px; border-radius: 10px;
+  min-width: 0; min-height: var(--tap); padding: 4px 3px; border-radius: 10px;
+  container-type: inline-size; /* ボタン幅に合わせて文字を縮め、名前を1行に収める */
   border: 2px solid var(--line); background: #fff; cursor: pointer; text-align: center; line-height: 1.25;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.seg .opt .lb { font-size: 17px; font-weight: bold; }
+.seg .opt .lb { font-size: min(17px, 19.5cqi); font-weight: bold; white-space: nowrap; }
 .seg .opt .nt { font-size: 13px; color: var(--muted); }
+.seg .opt .nt .nw { white-space: nowrap; } /* 「・」の位置で折り返す */
 .seg .opt.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .seg .opt .nt.t-profit { color: var(--profit); }
 .seg .opt .nt.t-env { color: var(--env); }
@@ -841,7 +844,7 @@ function segment(g, plan, i, field, items) {
     const reason = blockReason(g, plan, i, field, it.value);
     const on = plan[i][field] === it.value;
     return `<button class="opt ${on ? 'on' : ''} ${reason && !on ? 'off' : ''}" data-act="pick" data-i="${i}" data-f="${field}" data-v="${it.value === null ? '' : it.value}" ${reason && !on ? `data-reason="${esc(reason)}"` : ''} aria-pressed="${on}">
-      <span class="lb">${it.label}</span>${it.note ? `<span class="nt ${it.tone ? 't-' + it.tone : ''}">${it.note}</span>` : ''}</button>`;
+      <span class="lb">${it.label}</span>${it.note ? `<span class="nt ${it.tone ? 't-' + it.tone : ''}">${it.note.split('・').map((x) => `<span class="nw">${x}</span>`).join('・')}</span>` : ''}</button>`;
   }).join('')}</div>`;
 }
 function costNote(cost, env, extra) {
