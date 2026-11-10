@@ -112,6 +112,9 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 /* title */
 .hero { text-align: center; padding: 6px 0 8px; }
 .hero h1 { margin-top: 2px; }
+.pic { display: inline-block; width: 1.2em; height: 1.2em; vertical-align: -0.24em; flex: none; }
+.pics { display: inline-flex; gap: 0.3em; vertical-align: middle; }
+.pics .pic { vertical-align: 0; }
 .hero .icons { font-size: 40px; letter-spacing: 6px; }
 .field { display: block; margin: 12px 0; }
 .field input {
@@ -145,7 +148,7 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 
 /* how to */
 .howto { text-align: center; min-height: 260px; display: flex; flex-direction: column; justify-content: center; }
-.howto .big { font-size: 64px; }
+.howto .big { font-size: clamp(40px, 8vw, 60px); }
 .dots { text-align: center; color: var(--muted); letter-spacing: 6px; }
 
 /* season start */
@@ -257,23 +260,93 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 <script>
 'use strict';
 /* =========================================================================
+ * 0. PICTO ― ピクトグラム（絵文字の代わり）
+ *   24×24 の正方形グリッドに、円・四角・直線を基本にして描く。
+ *   カテゴリごとに色を決め、白抜き（反転）で表示する。{K} は地の色。
+ * ========================================================================= */
+const PICTO_COLOR = {
+  season: { spring: '#c8496f', summer: '#c98200', autumn: '#b5521c', winter: '#3a6fa8' },
+  crop: '#4a8a26', weather: '#b3261e', price: '#b85c00', local: '#1f5fa8', calm: '#5b6b7e',
+  tool: '#1c2430', profit: '#b85c00', env: '#2e7d32', region: '#1f5fa8', info: '#a35f00',
+};
+const rays = (r1, r2, n) => Array.from({ length: n }, (_, i) => {
+  const a = i * 2 * Math.PI / n, c = Math.cos(a), s = Math.sin(a);
+  return `<line x1="${(12 + c * r1).toFixed(2)}" y1="${(12 + s * r1).toFixed(2)}" x2="${(12 + c * r2).toFixed(2)}" y2="${(12 + s * r2).toFixed(2)}"/>`;
+}).join('');
+const ring = (r, n, cr) => Array.from({ length: n }, (_, i) => {
+  const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+  return `<circle cx="${(12 + Math.cos(a) * r).toFixed(2)}" cy="${(12 + Math.sin(a) * r).toFixed(2)}" r="${cr}"/>`;
+}).join('');
+const SW = (w, body) => `<g fill="none" stroke="#fff" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${body}</g>`;
+const SK = (w, body) => `<g fill="none" stroke="{K}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${body}</g>`;
+const PICTO = {
+  /* 季節 */
+  spring: ['season.spring', `<g fill="#fff">${ring(5, 5, 3.6)}</g><circle cx="12" cy="12" r="2" fill="{K}"/>`],
+  summer: ['season.summer', `<g fill="#fff">${ring(6.4, 10, 2.3)}</g><circle cx="12" cy="12" r="4.6" fill="#fff"/><circle cx="12" cy="12" r="3" fill="{K}"/>`],
+  autumn: ['season.autumn', `<path d="M12 3.5C17.5 6.5 19 13.5 12 19C5 13.5 6.5 6.5 12 3.5Z" fill="#fff"/>${SK(1.5, '<path d="M12 7V17.5M12 11.5L9.5 9.5M12 14L14.5 12"/>')}${SW(1.8, '<path d="M12 18.5V21.5"/>')}`],
+  winter: ['season.winter', `${SW(2.2, '<path d="M12 3.5V20.5M4.6 7.75L19.4 16.25M4.6 16.25L19.4 7.75M10 4.8L12 6.8L14 4.8M10 19.2L12 17.2L14 19.2"/>')}<circle cx="12" cy="12" r="2.2" fill="#fff"/>`],
+  /* 作物 */
+  spinach: ['crop', `<g fill="#fff"><ellipse cx="12" cy="8.5" rx="2.9" ry="5.2"/><ellipse cx="7.3" cy="11.5" rx="2.6" ry="4.8" transform="rotate(-38 7.3 11.5)"/><ellipse cx="16.7" cy="11.5" rx="2.6" ry="4.8" transform="rotate(38 16.7 11.5)"/></g>${SW(2, '<path d="M12 13V20.5M9 15.5L12 20.5L15 15.5"/>')}`],
+  potato: ['crop', `<ellipse cx="12" cy="12.5" rx="8.3" ry="6.2" transform="rotate(-20 12 12.5)" fill="#fff"/><g fill="{K}"><circle cx="8.8" cy="12" r="1.1"/><circle cx="13.6" cy="10" r="1.1"/><circle cx="14" cy="15" r="1.1"/></g>`],
+  cabbage: ['crop', `<circle cx="12" cy="12.5" r="8.3" fill="#fff"/>${SK(1.5, '<path d="M12 4.6C7.5 9 7.5 16 12 20.6M12 4.6C16.5 9 16.5 16 12 20.6M5 9.5C9 12 15 12 19 9.5"/>')}`],
+  tomato: ['crop', `<circle cx="12" cy="14" r="7" fill="#fff"/>${SK(1.6, '<path d="M8.5 8.6L12 10L15.5 8.6M12 7.4V10"/>')}${SW(2, '<path d="M12 7V3.5"/>')}`],
+  strawberry: ['crop', `<path d="M12 21C6.5 17.5 4.8 12.5 6 9.6C8.5 8 15.5 8 18 9.6C19.2 12.5 17.5 17.5 12 21Z" fill="#fff"/><path d="M6.5 8L9.3 4.3L12 7.2L14.7 4.3L17.5 8Z" fill="#fff"/>${SK(1.3, '<path d="M6.3 9L17.7 9"/>')}<g fill="{K}"><circle cx="9.5" cy="12" r=".85"/><circle cx="14.5" cy="12" r=".85"/><circle cx="12" cy="14.5" r=".85"/><circle cx="9.8" cy="16.3" r=".85"/><circle cx="14.2" cy="16.3" r=".85"/></g>`],
+  /* イベント */
+  typhoon: ['weather', `<circle cx="12" cy="12" r="2.6" fill="#fff"/>${SW(2.6, '<path d="M4.5 13A7.5 7.5 0 0 1 16 5.5M19.5 11A7.5 7.5 0 0 1 8 18.5"/>')}`],
+  heat: ['weather', `<circle cx="12" cy="12" r="4.4" fill="#fff"/>${SW(2.2, rays(7, 9.6, 8))}`],
+  rain: ['weather', `<path d="M3.5 12.5A8.5 8.5 0 0 1 20.5 12.5Z" fill="#fff"/>${SW(2, '<path d="M12 12.5V18.6A1.8 1.8 0 0 1 8.4 18.6M12 3V4.2"/>')}`],
+  pest: ['weather', `<ellipse cx="12" cy="14.2" rx="4.6" ry="5.6" fill="#fff"/><circle cx="12" cy="7.2" r="2.6" fill="#fff"/>${SK(1.3, '<path d="M12 9.6V19.6"/>')}${SW(1.8, '<path d="M7.6 11.5L4 9.5M7.4 14.5H3.8M7.6 17.3L4 19.5M16.4 11.5L20 9.5M16.6 14.5H20.2M16.4 17.3L20 19.5M11 5L9 2.8M13 5L15 2.8"/>')}`],
+  up: ['price', `${SW(2.6, '<path d="M4 18L9.5 12.5L13 15.5L19 9"/>')}<path d="M14.5 7L21 6L20 12.5Z" fill="#fff"/>`],
+  down: ['price', `${SW(2.6, '<path d="M4 6L9.5 11.5L13 8.5L19 15"/>')}<path d="M14.5 17L21 18L20 11.5Z" fill="#fff"/>`],
+  store: ['local', `<rect x="4" y="5" width="16" height="4.4" fill="#fff"/><rect x="5" y="9.4" width="14" height="10" fill="#fff"/>${SK(1.3, '<path d="M8 5V9.4M12 5V9.4M16 5V9.4M4 9.4H20"/>')}<rect x="10" y="13.4" width="4" height="6" fill="{K}"/>`],
+  lunch: ['local', `<path d="M4 11.5H20A8 7 0 0 1 4 11.5Z" fill="#fff"/><rect x="9" y="18.6" width="6" height="1.8" fill="#fff"/>${SW(1.6, '<path d="M9 9C8 7.5 10 6.5 9 5M12 9C11 7.5 13 6.5 12 5M15 9C14 7.5 16 6.5 15 5"/>')}`],
+  calm: ['calm', `<circle cx="9" cy="9" r="4.2" fill="#fff"/>${SW(1.8, '<path d="M9 2.5V3.2M2.5 9H3.2M4.4 4.4L4.9 4.9M13.6 4.4L13.1 4.9"/>')}<g fill="{K}"><circle cx="11" cy="15" r="4.8"/><circle cx="15.5" cy="13" r="5.5"/><rect x="6.7" y="13.7" width="15.1" height="7.1" rx="3.5"/></g><g fill="#fff"><circle cx="11" cy="15" r="3.5"/><circle cx="15.5" cy="13" r="4.2"/><rect x="8" y="15" width="12.5" height="4.5" rx="2.2"/></g>`],
+  /* 選ぶもの */
+  field: ['tool', `<rect x="3.5" y="6" width="17" height="12.5" rx="1.5" fill="#fff"/>${SK(1.6, '<path d="M3.5 10.2H20.5M3.5 14.3H20.5"/>')}`],
+  sprout: ['tool', `${SW(2.2, '<path d="M12 20V11M6 20.2H18"/>')}<g fill="#fff"><ellipse cx="8" cy="9.5" rx="4.2" ry="2.4" transform="rotate(25 8 9.5)"/><ellipse cx="16" cy="8" rx="4.6" ry="2.6" transform="rotate(-30 16 8)"/></g>`],
+  house: ['tool', `<path d="M3.5 19.5V12.5A8.5 7 0 0 1 20.5 12.5V19.5Z" fill="#fff"/>${SK(1.3, '<path d="M9 6.8V19.5M15 6.8V19.5M3.5 13H20.5"/>')}`],
+  bug: ['tool', null],
+  flask: ['tool', `<path d="M9.5 3.5H14.5M10.3 3.5V9.3L5 18.6A1.4 1.4 0 0 0 6.2 20.6H17.8A1.4 1.4 0 0 0 19 18.6L13.7 9.3V3.5" fill="#fff" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>${SK(1.4, '<path d="M7.6 14.3H16.4"/>')}`],
+  truck: ['tool', `<rect x="2.5" y="6.5" width="11.5" height="9" fill="#fff"/><path d="M15 9.5H18.5L21.5 13V15.5H15Z" fill="#fff"/><g fill="#fff" stroke="{K}" stroke-width="1.4"><circle cx="7" cy="17.3" r="2.4"/><circle cx="17.6" cy="17.3" r="2.4"/></g>`],
+  /* スコア */
+  profit: ['profit', `<circle cx="12" cy="12" r="8.6" fill="#fff"/>${SK(1.8, '<path d="M8.6 6.6L12 11.4L15.4 6.6M12 11.4V18M9 12.4H15M9 15.2H15"/>')}`],
+  env: ['env', `<circle cx="12" cy="12" r="8.6" fill="#fff"/>${SK(1.4, '<ellipse cx="12" cy="12" rx="3.6" ry="8.6"/><path d="M3.4 12H20.6M5 7.8H19M5 16.2H19"/>')}`],
+  region: ['region', `<circle cx="8.5" cy="7.8" r="2.8" fill="#fff"/><circle cx="15.5" cy="7.8" r="2.8" fill="#fff"/><path d="M3.5 19A5 5 0 0 1 13.5 19Z" fill="#fff"/><path d="M10.5 19A5 5 0 0 1 20.5 19Z" fill="#fff" stroke="{K}" stroke-width="1.3"/>`],
+  /* 案内 */
+  hint: ['info', `<circle cx="12" cy="10" r="6" fill="#fff"/><rect x="9.3" y="14.8" width="5.4" height="2.6" fill="#fff"/><rect x="9.8" y="18.2" width="4.4" height="1.8" rx=".9" fill="#fff"/>`],
+  look: ['tool', `${SW(2.6, '<circle cx="10.5" cy="10.5" r="5.4"/><path d="M14.6 14.6L19.8 19.8"/>')}`],
+  tap: ['tool', `<circle cx="12" cy="12" r="3.2" fill="#fff"/>${SW(1.8, '<circle cx="12" cy="12" r="7.2"/>')}`],
+  medal: ['info', `<path d="M7.5 3H11L13.3 10H9.8ZM16.5 3H13L10.7 10H14.2Z" fill="#fff"/><circle cx="12" cy="15" r="5.6" fill="#fff"/>${SK(1.3, '<circle cx="12" cy="15" r="3"/>')}`],
+  grain: ['tool', `${SW(1.8, '<path d="M12 21V6"/>')}<g fill="#fff"><ellipse cx="12" cy="4.6" rx="1.6" ry="2.6"/>${[7.6, 11, 14.4].map((y) => `<ellipse cx="10.2" cy="${y}" rx="1.6" ry="2.6" transform="rotate(-35 10.2 ${y})"/><ellipse cx="13.8" cy="${y}" rx="1.6" ry="2.6" transform="rotate(35 13.8 ${y})"/>`).join('')}</g>`],
+};
+PICTO.bug[1] = PICTO.pest[1];
+function picColor(cat) { return cat.split('.').reduce((o, k) => o[k], PICTO_COLOR); }
+/* HTML でも SVG の中でも使える。attrs に x/y/width/height を渡すと SVG 内に置ける */
+function pic(name, attrs = '') {
+  const [cat, body] = PICTO[name];
+  const c = picColor(cat);
+  return `<svg class="pic" viewBox="0 0 24 24" aria-hidden="true" ${attrs}><rect width="24" height="24" rx="5" fill="${c}"/>${body.replaceAll('{K}', c)}</svg>`;
+}
+const pics = (...names) => `<span class="pics">${names.map((n) => pic(n)).join('')}</span>`;
+
+/* =========================================================================
  * 1. CONFIG  ― 数値と文言はすべてここ。単位は万円。倍率は小数。
  * ========================================================================= */
 const CONFIG = {
   startMoney: 30,
   plots: 3,
   seasons: [
-    { id: 'spring', name: '春', icon: '🌸' },
-    { id: 'summer', name: '夏', icon: '🌻' },
-    { id: 'autumn', name: '秋', icon: '🍁' },
-    { id: 'winter', name: '冬', icon: '⛄' },
+    { id: 'spring', name: '春', icon: pic('spring') },
+    { id: 'summer', name: '夏', icon: pic('summer') },
+    { id: 'autumn', name: '秋', icon: pic('autumn') },
+    { id: 'winter', name: '冬', icon: pic('winter') },
   ],
   crops: {
-    spinach:    { name: 'ほうれん草', icon: '🌿', seasons: ['spring', 'autumn', 'winter'], cost: 2, sales: 5,  needHouse: false, note: '安定・低価格。猛暑に弱い' },
-    potato:     { name: 'じゃがいも', icon: '🥔', seasons: ['spring'],                    cost: 2, sales: 5,  needHouse: false, note: '天候や虫に強い', weatherFactor: 0.5 },
-    cabbage:    { name: 'キャベツ',   icon: '🥬', seasons: ['spring', 'autumn'],           cost: 3, sales: 7,  needHouse: false, note: '虫に弱い' },
-    tomato:     { name: 'ミニトマト', icon: '🍅', seasons: ['summer'],                    cost: 4, sales: 10, needHouse: false, note: '長雨に弱い' },
-    strawberry: { name: 'いちご',     icon: '🍓', seasons: ['winter'],                    cost: 6, sales: 15, needHouse: true,  note: 'ハウスが必要。暖房費がかかる' },
+    spinach:    { name: 'ほうれん草', icon: pic('spinach'), seasons: ['spring', 'autumn', 'winter'], cost: 2, sales: 5,  needHouse: false, note: '安定・低価格。猛暑に弱い' },
+    potato:     { name: 'じゃがいも', icon: pic('potato'), seasons: ['spring'],                    cost: 2, sales: 5,  needHouse: false, note: '天候や虫に強い', weatherFactor: 0.5 },
+    cabbage:    { name: 'キャベツ',   icon: pic('cabbage'), seasons: ['spring', 'autumn'],           cost: 3, sales: 7,  needHouse: false, note: '虫に弱い' },
+    tomato:     { name: 'ミニトマト', icon: pic('tomato'), seasons: ['summer'],                    cost: 4, sales: 10, needHouse: false, note: '長雨に弱い' },
+    strawberry: { name: 'いちご',     icon: pic('strawberry'), seasons: ['winter'],                    cost: 6, sales: 15, needHouse: true,  note: 'ハウスが必要。暖房費がかかる' },
   },
   cropOrder: ['spinach', 'potato', 'cabbage', 'tomato', 'strawberry'],
   house: {
@@ -310,15 +383,15 @@ const CONFIG = {
   direct: { bonus: 1.2, unsoldProb: [0, 0.20, 0.50, 0.80], unsoldMult: 0.7 },  // 出す区画数 0〜3
   process: { price: 0.8, recover: 0.5 },
   events: {
-    typhoon: { name: '台風',   icon: '🌀', text: '台風が来た！ 露地の作物は収量が半分に（ハウスは被害が半分）。', weather: { default: 0.5 }, houseFactor: 0.5 },
-    heat:    { name: '猛暑',   icon: '☀️', text: '猛暑が続いた。ほうれん草は収量−50%、ほかの作物は−10%（ハウスは被害が半分）。', weather: { spinach: 0.5, default: 0.1 }, houseFactor: 0.5 },
-    rain:    { name: '長雨',   icon: '☔', text: '長雨が続いた。露地のミニトマトは収量−50%。', weather: { tomato: 0.5 }, houseFactor: 0 },
-    pest:    { name: '害虫大発生', icon: '🐛', text: '害虫が大発生！ 虫対策をしていない作物は大きな被害。', outbreak: true },
-    high:    { name: '価格高騰', icon: '📈', text: '野菜の値段が上がった！ 市場に出した作物は価格×1.5。', marketMult: 1.5 },
-    crash:   { name: '豊作で値崩れ', icon: '📉', text: 'あちこちで豊作になり値崩れ。市場に出した作物は価格×0.6。', marketMult: 0.6 },
-    super:   { name: '地元スーパーからの注文', icon: '🏪', text: '地元スーパーから注文が入った！ 直売所の売れ残りなし。', noUnsold: true },
-    school:  { name: '給食センターからの依頼', icon: '🍱', text: '給食センターから野菜の依頼！ 売上+3万円、地域ポイント+2（作物を植えていれば）。', bonusMoney: 3, bonusRegion: 2 },
-    normal:  { name: '平年並み', icon: '🌤️', text: '特に大きなできごとはなく、平年並みの季節だった。' },
+    typhoon: { name: '台風',   icon: pic('typhoon'), text: '台風が来た！ 露地の作物は収量が半分に（ハウスは被害が半分）。', weather: { default: 0.5 }, houseFactor: 0.5 },
+    heat:    { name: '猛暑',   icon: pic('heat'), text: '猛暑が続いた。ほうれん草は収量−50%、ほかの作物は−10%（ハウスは被害が半分）。', weather: { spinach: 0.5, default: 0.1 }, houseFactor: 0.5 },
+    rain:    { name: '長雨',   icon: pic('rain'), text: '長雨が続いた。露地のミニトマトは収量−50%。', weather: { tomato: 0.5 }, houseFactor: 0 },
+    pest:    { name: '害虫大発生', icon: pic('pest'), text: '害虫が大発生！ 虫対策をしていない作物は大きな被害。', outbreak: true },
+    high:    { name: '価格高騰', icon: pic('up'), text: '野菜の値段が上がった！ 市場に出した作物は価格×1.5。', marketMult: 1.5 },
+    crash:   { name: '豊作で値崩れ', icon: pic('down'), text: 'あちこちで豊作になり値崩れ。市場に出した作物は価格×0.6。', marketMult: 0.6 },
+    super:   { name: '地元スーパーからの注文', icon: pic('store'), text: '地元スーパーから注文が入った！ 直売所の売れ残りなし。', noUnsold: true },
+    school:  { name: '給食センターからの依頼', icon: pic('lunch'), text: '給食センターから野菜の依頼！ 売上+3万円、地域ポイント+2（作物を植えていれば）。', bonusMoney: 3, bonusRegion: 2 },
+    normal:  { name: '平年並み', icon: pic('calm'), text: '特に大きなできごとはなく、平年並みの季節だった。' },
   },
   eventOrder: ['typhoon', 'heat', 'rain', 'pest', 'high', 'crash', 'super', 'school', 'normal'],
   // 山札の枚数（季節ごとの重み）。0はその季節に出ない
@@ -348,9 +421,9 @@ const CONFIG = {
   ],
   defaultPlot: { crop: 'spinach', pest: 'none', fert: 'none', ship: 'market' },
   howto: [
-    { icon: '🟫🟫🟫', title: '3つの畑で、春夏秋冬の1年間', text: '畑は3区画。季節ごとに、区画ごとに作物を選んで植えます。最初の資金は30万円です。' },
-    { icon: '🌱🏠🐛🧪🚚', title: '1つの区画で5つを選ぶ', text: '作物・栽培方法・虫対策・肥料・出荷先を選びます。季節の終わりにイベントカード（台風や害虫など）が1枚引かれ、どれだけとれて、いくらで売れたかが決まります。' },
-    { icon: '💰🌏🤝', title: '利益・環境・地域の3つで評価', text: 'もうけだけでなく、環境へのやさしさや地域とのつながりも点数になります（300点満点）。環境は75点、地域は40点からスタートし、選び方で上がったり下がったりします。3つのバランスがよい農業を目指そう！' },
+    { icon: pics('field', 'field', 'field'), title: '3つの畑で、春夏秋冬の1年間', text: '畑は3区画。季節ごとに、区画ごとに作物を選んで植えます。最初の資金は30万円です。' },
+    { icon: pics('sprout', 'house', 'bug', 'flask', 'truck'), title: '1つの区画で5つを選ぶ', text: '作物・栽培方法・虫対策・肥料・出荷先を選びます。季節の終わりにイベントカード（台風や害虫など）が1枚引かれ、どれだけとれて、いくらで売れたかが決まります。' },
+    { icon: pics('profit', 'env', 'region'), title: '利益・環境・地域の3つで評価', text: 'もうけだけでなく、環境へのやさしさや地域とのつながりも点数になります（300点満点）。環境は75点、地域は40点からスタートし、選び方で上がったり下がったりします。3つのバランスがよい農業を目指そう！' },
   ],
 };
 
@@ -671,9 +744,9 @@ function sidePanel() {
   const fx = state.screen === 'plan' ? planEffects(g, g.plan) : null;
   const houseN = g.houses.filter(Boolean).length;
   const meters = [
-    { name: '利益', color: 'var(--side-profit)', v: sc.P, d: fx ? `この計画で 費用−${fmt(fx.cost)}万円（売上は収穫後）` : `利益 ${signed(sc.profit)}万円` },
-    { name: '環境', color: 'var(--side-env)', v: sc.E, d: fx ? `この計画で 環境ポイント${signed(fx.env)}` : `環境ポイント ${signed(env)}` },
-    { name: '地域', color: 'var(--side-region)', v: sc.R, d: fx ? `この計画で 地域ポイント${signed(fx.region)}` : `地域ポイント ${signed(region)}` },
+    { pic: 'profit', name: '利益', color: 'var(--side-profit)', v: sc.P, d: fx ? `この計画で 費用−${fmt(fx.cost)}万円（売上は収穫後）` : `利益 ${signed(sc.profit)}万円` },
+    { pic: 'env', name: '環境', color: 'var(--side-env)', v: sc.E, d: fx ? `この計画で 環境ポイント${signed(fx.env)}` : `環境ポイント ${signed(env)}` },
+    { pic: 'region', name: '地域', color: 'var(--side-region)', v: sc.R, d: fx ? `この計画で 地域ポイント${signed(fx.region)}` : `地域ポイント ${signed(region)}` },
   ];
   return `<aside class="side" aria-label="いまの状態">
     <div><div class="lbl">季節</div><div class="stepper">${CONFIG.seasons.map((s, i) =>
@@ -681,10 +754,10 @@ function sidePanel() {
     <div><div class="lbl">資金</div><div class="money">${fmt(money)}<small> 万円</small></div>
       ${fx ? `<div class="sub">この計画の費用 ${fmt(fx.cost)} → 残り ${fmt(money - fx.cost)}</div>` : ''}</div>
     ${meters.map((m) => `<div class="meter">
-      <div class="mh"><span class="mn" style="color:${m.color}">${m.name}</span><span class="ms">${m.v}<small> 点</small></span></div>
+      <div class="mh"><span class="mn" style="color:${m.color}">${pic(m.pic)} ${m.name}</span><span class="ms">${m.v}<small> 点</small></span></div>
       <div class="mbar"><i style="width:${m.v}%;background:${m.color}"></i></div>
       <div class="md">${m.d}</div></div>`).join('')}
-    ${houseN ? `<div class="houses">🏠 ハウス ${houseN}棟</div>` : ''}
+    ${houseN ? `<div class="houses">${pic('house')} ハウス ${houseN}棟</div>` : ''}
   </aside>`;
 }
 
@@ -693,7 +766,7 @@ const screens = {};
 screens.title = () => `
   <div class="wrap" style="max-width:720px">
     <div class="hero">
-      <div class="icons">🌿🥔🥬🍅🍓</div>
+      <div class="icons">${pics('spinach', 'potato', 'cabbage', 'tomato', 'strawberry')}</div>
       <h1>農家経営シミュレーション</h1>
       <div class="muted">1年間農家を経営し、「利益」「環境」「地域」のバランスがよい農業を目指そう</div>
     </div>
@@ -756,7 +829,7 @@ screens.seasonStart = () => {
         return `<div class="ev">${e.icon} ${e.name} <b>×${deck[k]}</b></div>`;
       }).join('')}</div>
       <div class="small muted">数字はカードの枚数です。多いほど出やすくなります。季節の最後に、この中から1枚引きます。</div>
-      <div class="hint">💡 ${CONFIG.seasonHints[s.id]}</div>
+      <div class="hint">${pic('hint')} ${CONFIG.seasonHints[s.id]}</div>
       ${g.seasonIdx === 0 ? `<div class="small muted">点数は 利益0点・環境${CONFIG.score.env.base}点・地域${CONFIG.score.region.base}点 からスタートです。選び方とできごとで上がったり下がったりします。</div>` : ''}
     </div>
     <div class="btns"><button class="btn" data-act="toPlan">計画を立てる</button></div>
@@ -795,13 +868,13 @@ screens.plan = () => {
     const offSeason = CONFIG.cropOrder.filter((c) => !CONFIG.crops[c].seasons.includes(season));
     const houseItems = [
       { value: false, label: '<ruby>露地<rt>ろじ</rt></ruby>', note: '天候の影響を受ける' },
-      { value: true, label: '🏠 ハウス', note: g.houses[i] ? (season === 'winter' ? `建設済み・暖房費${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : '建設済み') : `建設費${CONFIG.house.buildCost}${season === 'winter' ? `・暖房費${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : ''}` },
+      { value: true, label: `${pic('house')} ハウス`, note: g.houses[i] ? (season === 'winter' ? `建設済み・暖房費${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : '建設済み') : `建設費${CONFIG.house.buildCost}${season === 'winter' ? `・暖房費${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : ''}` },
     ];
     const pestItems = CONFIG.pestOrder.map((k) => { const o = CONFIG.pestOptions[k]; return { value: k, label: o.label, note: costNote(o.cost, o.env, (p.house && o.houseNote) ? o.houseNote : o.note), tone: o.env ? 'env' : '' }; });
     const fertItems = CONFIG.fertOrder.map((k) => { const f = CONFIG.fertOptions[k]; return { value: k, label: f.label, note: costNote(f.cost, f.env, f.yield ? `収量+${pct(f.yield)}` : ''), tone: f.env ? 'env' : '' }; });
     const shipItems = CONFIG.shipOrder.map((k) => { const s = CONFIG.shipOptions[k]; return { value: k, label: s.label, note: (s.region ? `地域+${s.region}・` : '') + s.note, tone: s.region ? 'region' : 'profit' }; });
     return `<div class="plot ${p.crop ? '' : 'empty'}">
-      <div class="plot-head"><h3>区画${i + 1} ${g.houses[i] ? '🏠' : ''}</h3>
+      <div class="plot-head"><h3>区画${i + 1} ${g.houses[i] ? pic('house') : ''}</h3>
         ${i > 0 ? `<button class="mini" data-act="copyLeft" data-i="${i}">◀ 区画${i}と同じ</button>` : ''}</div>
       <div class="row"><div class="rl">① 作物</div>${segment(g, plan, i, 'crop', cropItems)}
         <div class="small muted" style="margin-top:2px">${p.crop ? CONFIG.crops[p.crop].note : ''}${offSeason.length ? `　今は植えられない：${offSeason.map((c) => CONFIG.crops[c].icon).join('')}` : ''}</div></div>
@@ -815,9 +888,9 @@ screens.plan = () => {
   const nDirect = countDirect(plan);
   return `<div class="wrap">
     <h2>${CONFIG.seasons[g.seasonIdx].icon} ${CONFIG.seasons[g.seasonIdx].name}の<ruby>作付<rt>さくづ</rt></ruby>け計画</h2>
-    ${g.seasonIdx === 0 ? `<div class="hint" style="margin-bottom:10px">👆 区画ごとに①〜⑤を1つずつ選び、下の「決定」をおします。同じにしたいときは「◀ 区画○と同じ」が便利。<b>選べないボタンをおすと、理由が出ます。</b></div>` : ''}
-    ${season === 'winter' ? `<div class="hint" style="margin-bottom:10px">💡 ${CONFIG.seasonHints.winter}</div>` : ''}
-    ${nDirect >= 2 ? `<div class="hint" style="margin-bottom:10px">🛒 直売所に${nDirect}区画出すと、売れ残る確率は${pct(CONFIG.direct.unsoldProb[nDirect])}です（1区画なら${pct(CONFIG.direct.unsoldProb[1])}）。</div>` : ''}
+    ${g.seasonIdx === 0 ? `<div class="hint" style="margin-bottom:10px">${pic('tap')} 区画ごとに①〜⑤を1つずつ選び、下の「決定」をおします。同じにしたいときは「◀ 区画○と同じ」が便利。<b>選べないボタンをおすと、理由が出ます。</b></div>` : ''}
+    ${season === 'winter' ? `<div class="hint" style="margin-bottom:10px">${pic('hint')} ${CONFIG.seasonHints.winter}</div>` : ''}
+    ${nDirect >= 2 ? `<div class="hint" style="margin-bottom:10px">${pic('store')} 直売所に${nDirect}区画出すと、売れ残る確率は${pct(CONFIG.direct.unsoldProb[nDirect])}です（1区画なら${pct(CONFIG.direct.unsoldProb[1])}）。</div>` : ''}
     <div class="plots">${cards}</div>
   </div>
   <div class="foot">
@@ -836,12 +909,12 @@ screens.event = () => {
     <h2 class="center">${CONFIG.seasons[g.seasonIdx].name}のイベントカード</h2>
     <div class="card-stage" data-act="skipFlip">
       <div class="card ${g.revealed ? 'shown' : 'flip'}">
-        <div class="face back">🌾</div>
+        <div class="face back">${pic('grain')}</div>
         <div class="face front"><div class="ei">${e.icon}</div><div class="en">${e.name}</div></div>
       </div>
     </div>
     ${g.revealed ? `<p class="ev-text">${e.text}</p>
-      ${r.nDirect > 0 ? `<p class="ev-text">${r.unsold ? '🛒 直売所で売れ残りが出てしまった…（直売所の売上×0.7）' : '🛒 直売所はすべて売り切れた！'}</p>` : ''}
+      ${r.nDirect > 0 ? `<p class="ev-text">${r.unsold ? `${pic('store')} 直売所で売れ残りが出てしまった…（直売所の売上×0.7）` : `${pic('store')} 直売所はすべて売り切れた！`}</p>` : ''}
       <div class="btns"><button class="btn" data-act="toResult">結果を見る</button></div>`
       : '<p class="center muted">タップでとばせます</p>'}
   </div>`;
@@ -874,10 +947,10 @@ screens.result = () => {
   const r = g.current;
   const last = g.seasonIdx === 3;
   const rows = r.plots.map((p, i) => {
-    if (p.empty) return `<tr><td>区画${i + 1}${p.house ? ' 🏠' : ''}</td><td colspan="3" class="muted">植えなかった</td><td class="num">−${fmt(p.cost)}</td><td class="num">0</td></tr>`;
+    if (p.empty) return `<tr><td>区画${i + 1}${p.house ? ' ' + pic('house') : ''}</td><td colspan="3" class="muted">植えなかった</td><td class="num">−${fmt(p.cost)}</td><td class="num">0</td></tr>`;
     const c = CONFIG.crops[p.crop];
     return `<tr>
-      <td>区画${i + 1}${p.house ? ' 🏠' : ''}<br><b>${c.icon} ${c.name}</b></td>
+      <td>区画${i + 1}${p.house ? ' ' + pic('house') : ''}<br><b>${c.icon} ${c.name}</b></td>
       <td><div class="chips">${plotChips(p)}</div><div class="small muted">収量 ${pct(p.yieldRate)}</div></td>
       <td>${CONFIG.shipOptions[p.ship].name}<div class="small muted">${p.priceNote}</div></td>
       <td class="small">${p.env ? `環境${signed(p.env)}` : ''}${p.region ? ` 地域${signed(p.region)}` : ''}</td>
@@ -891,15 +964,15 @@ screens.result = () => {
       <table>
         <tr><th>区画</th><th>収量の内訳</th><th>出荷先</th><th>環境・地域</th><th class="num">費用</th><th class="num">売上</th></tr>
         ${rows}
-        ${r.bonusMoney ? `<tr><td colspan="4">🍱 給食センターからの依頼（地域+${r.bonusRegion}）</td><td></td><td class="num"><b>+${fmt(r.bonusMoney)}</b></td></tr>` : ''}
+        ${r.bonusMoney ? `<tr><td colspan="4">${pic('lunch')} 給食センターからの依頼（地域+${r.bonusRegion}）</td><td></td><td class="num"><b>+${fmt(r.bonusMoney)}</b></td></tr>` : ''}
       </table>
       <div class="small muted" style="margin-top:6px">売上 ＝ 基本売上 × <ruby>収量<rt>しゅうりょう</rt></ruby> × 価格の倍率（万円）。収量100%は「ふつうにとれた」、50%は「半分しかとれなかった」という意味です。</div>
     </div>
-    ${seasonLessons(r).length ? `<div class="panel" style="margin-top:12px"><h3>🔍 この季節の気づき</h3><ul class="comments">${seasonLessons(r).map((t) => `<li>${t}</li>`).join('')}</ul></div>` : ''}
+    ${seasonLessons(r).length ? `<div class="panel" style="margin-top:12px"><h3>${pic('look')} この季節の気づき</h3><ul class="comments">${seasonLessons(r).map((t) => `<li>${t}</li>`).join('')}</ul></div>` : ''}
     <div class="summary" style="margin-top:12px">
       <div class="box"><div class="k">資金</div><div class="v">${fmt(r.moneyBefore)} → ${fmt(r.money)}</div><div class="${net >= 0 ? 'plus' : 'minus'}">${signed(net)}万円</div></div>
-      <div class="box"><div class="k">🌏 環境ポイント</div><div class="v ${r.env > 0 ? 'plus' : r.env < 0 ? 'minus' : ''}">${signed(r.env)}</div><div class="small muted">合計 ${signed(g.env)}</div></div>
-      <div class="box"><div class="k">🤝 地域ポイント</div><div class="v ${r.region > 0 ? 'plus' : ''}">${signed(r.region)}</div><div class="small muted">合計 ${signed(g.region)}</div></div>
+      <div class="box"><div class="k">${pic('env')} 環境ポイント</div><div class="v ${r.env > 0 ? 'plus' : r.env < 0 ? 'minus' : ''}">${signed(r.env)}</div><div class="small muted">合計 ${signed(g.env)}</div></div>
+      <div class="box"><div class="k">${pic('region')} 地域ポイント</div><div class="v ${r.region > 0 ? 'plus' : ''}">${signed(r.region)}</div><div class="small muted">合計 ${signed(g.region)}</div></div>
     </div>
     <div class="btns"><button class="btn" data-act="${last ? 'toFinal' : 'nextSeason'}">${last ? '最終結果へ' : '次の季節へ'}</button></div>
   </div>`;
@@ -908,9 +981,9 @@ screens.result = () => {
 function radarSVG(sc) {
   const W = 340, R = 100, cx = W / 2, cy = R + 32, H = cy + R / 2 + 34;
   const axes = [
-    { k: 'P', label: '💰 利益', color: 'var(--profit)' },
-    { k: 'E', label: '🌏 環境', color: 'var(--env)' },
-    { k: 'R', label: '🤝 地域', color: 'var(--region)' },
+    { k: 'P', pic: 'profit', label: '利益', color: 'var(--profit)' },
+    { k: 'E', pic: 'env', label: '環境', color: 'var(--env)' },
+    { k: 'R', pic: 'region', label: '地域', color: 'var(--region)' },
   ];
   const ang = (i) => -Math.PI / 2 + i * 2 * Math.PI / 3;
   const pt = (i, v) => [cx + Math.cos(ang(i)) * R * v / 100, cy + Math.sin(ang(i)) * R * v / 100];
@@ -926,7 +999,10 @@ function radarSVG(sc) {
     const anchor = i === 0 ? 'middle' : i === 1 ? 'start' : 'end';
     const ly = i === 0 ? y - 10 : y + 24;
     const lx = i === 0 ? x : x + (i === 1 ? -40 : 40);
-    return `<text x="${lx}" y="${ly}" text-anchor="${anchor}" font-size="16" font-weight="bold" fill="${a.color}">${a.label} ${sc[a.k]}</text>`;
+    // ピクトグラム（20px）＋文字。文字幅はおおよそで計算する
+    const tw = 16 * a.label.length + 5 + 9.5 * String(sc[a.k]).length;
+    const x0 = anchor === 'start' ? lx : anchor === 'end' ? lx - tw - 24 : lx - (tw + 24) / 2;
+    return `${pic(a.pic, `x="${x0}" y="${ly - 16}" width="20" height="20"`)}<text x="${x0 + 24}" y="${ly}" font-size="16" font-weight="bold" fill="${a.color}">${a.label} ${sc[a.k]}</text>`;
   }).join('');
   const dots = axes.map((a, i) => `<circle cx="${pt(i, sc[a.k])[0]}" cy="${pt(i, sc[a.k])[1]}" r="5" fill="${a.color}"/>`).join('');
   return `<svg class="radar" viewBox="0 0 ${W} ${H}" role="img" aria-label="利益${sc.P}点、環境${sc.E}点、地域${sc.R}点">
@@ -944,7 +1020,7 @@ screens.final = () => {
     const s = CONFIG.seasons[h.result.seasonIdx];
     const e = CONFIG.events[h.result.event];
     const cells = h.result.plots.map((p) => p.empty ? '<td class="muted">―</td>'
-      : `<td>${CONFIG.crops[p.crop].icon}${p.house ? '🏠' : ''} ${CONFIG.pestOptions[p.pest].short}・${CONFIG.fertOptions[p.fert].short}・${CONFIG.shipOptions[p.ship].short}</td>`).join('');
+      : `<td>${CONFIG.crops[p.crop].icon}${p.house ? pic('house') : ''} ${CONFIG.pestOptions[p.pest].short}・${CONFIG.fertOptions[p.fert].short}・${CONFIG.shipOptions[p.ship].short}</td>`).join('');
     return `<tr><td>${s.name}</td><td>${e.icon}</td>${cells}</tr>`;
   }).join('');
   return `<div class="wrap">
@@ -953,16 +1029,16 @@ screens.final = () => {
         <div class="who"><b>${esc(state.name || '（名前なし）')}</b><span>${state.round}回目</span><span>${date}</span>${state.code.trim() ? `<span>コード ${esc(state.code.trim())}</span>` : ''}</div>
         <div class="score-box">${radarSVG(sc)}
         <table class="scores">
-          <tr><td>💰 利益点<div class="muted">${S.profit.formula}<br>利益 ${signed(sc.profit)}万円</div></td><td class="pt">${sc.P}</td></tr>
-          <tr><td>🌏 環境点<div class="muted">${S.env.formula}<br>環境ポイント ${signed(sc.env)}</div></td><td class="pt">${sc.E}</td></tr>
-          <tr><td>🤝 地域点<div class="muted">${S.region.formula}<br>地域ポイント ${signed(sc.region)}</div></td><td class="pt">${sc.R}</td></tr>
+          <tr><td>${pic('profit')} 利益点<div class="muted">${S.profit.formula}<br>利益 ${signed(sc.profit)}万円</div></td><td class="pt">${sc.P}</td></tr>
+          <tr><td>${pic('env')} 環境点<div class="muted">${S.env.formula}<br>環境ポイント ${signed(sc.env)}</div></td><td class="pt">${sc.E}</td></tr>
+          <tr><td>${pic('region')} 地域点<div class="muted">${S.region.formula}<br>地域ポイント ${signed(sc.region)}</div></td><td class="pt">${sc.R}</td></tr>
         </table></div>
       </div>
       <div class="stack">
         <div class="panel total">
           <div class="small muted">持続可能な農業スコア（300点満点）</div>
           <div class="t">${sc.total}<span style="font-size:22px">点</span></div>
-          <div class="rank">🏅 ${sc.rank}</div>
+          <div class="rank">${pic('medal')} ${sc.rank}</div>
           ${(() => { const nx = [...CONFIG.ranks].reverse().find((k) => k.min > sc.total); return nx ? `<div class="small muted">あと${nx.min - sc.total}点で「${nx.name}」</div>` : ''; })()}
         </div>
         <div class="panel">
