@@ -8,25 +8,28 @@
 <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f3f5f7;
-  --panel: #ffffff;
-  --ink: #1c2430;
-  --muted: #5b6676;
-  --line: #d8dee6;
-  --accent: #1c2430;
+  /* 「畑ノート」: 生成りの紙と土の色。季節の色は body[data-season] で切り替える */
+  --bg: #f4f1e8;
+  --panel: #fffdf8;
+  --ink: #23261f;
+  --muted: #5e6052;
+  --line: #e0d9c8;
+  --accent: #23261f;
   --accent-ink: #ffffff;
-  --accent-soft: #e9eef5;
+  --accent-soft: #eef0e4;
+  --season: #4f7a2c;
+  --season-soft: #eef3e6;
   --good: #2e7d32;
   --good-soft: #dcefdc;
   --warn: #b3261e;
   --warn-soft: #fbe5e2;
   --gold: #a35f00;
-  --profit: #b85c00;
+  --profit: #9a4c00;
   --env: #2e7d32;
   --region: #1f5fa8;
-  --side: #1c2430;
-  --side-line: #364152;
-  --side-muted: #9aa6b6;
+  --side: #262a22;
+  --side-line: #3d4236;
+  --side-muted: #a7ab98;
   --side-profit: #f0a050;
   --side-env: #6cc070;
   --side-region: #6aa8ec;
@@ -45,7 +48,14 @@ body {
 }
 button { font: inherit; color: inherit; }
 ruby { ruby-align: center; } /* ふりがなが長くても漢字の間をあけない */
-rt { font-size: 0.55em; }
+rt { font-size: max(0.6em, 10px); }
+body[data-season=spring] { --season: #c8496f; --season-soft: #fbeef2; }
+body[data-season=summer] { --season: #b07200; --season-soft: #fbf3df; }
+body[data-season=autumn] { --season: #b5521c; --season-soft: #f9ece3; }
+body[data-season=winter] { --season: #3a6fa8; --season-soft: #e9f0f8; }
+ruby.r rt { margin-inline: -1em; } /* ふりがなが長い言葉でも、前後に空きを作らない */
+::selection { background: var(--season-soft); }
+:focus-visible { outline: 3px solid var(--season); outline-offset: 2px; }
 .wrap { max-width: 1280px; margin: 0 auto; padding: 12px 16px 120px; }
 h1 { font-size: 30px; margin: 8px 0 4px; }
 h2 { font-size: 24px; margin: 4px 0 10px; }
@@ -60,13 +70,13 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .side {
   width: 270px; flex-shrink: 0; box-sizing: border-box; background: var(--side); color: #fff;
   position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 20px 18px;
-  display: flex; flex-direction: column; gap: 16px;
+  display: flex; flex-direction: column; gap: 16px; border-top: 6px solid var(--season);
 }
 .side .lbl { font-size: 13px; color: var(--side-muted); }
 .stepper { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
 .stepper span { text-align: center; padding: 5px 0; border-radius: 6px; border: 1px solid var(--side-line); color: var(--side-muted); font-size: 16px; }
 .stepper span.done { background: var(--side-line); color: #fff; border-color: var(--side-line); }
-.stepper span.now { background: #fff; color: var(--side); font-weight: bold; border-color: #fff; }
+.stepper span.now { background: var(--season); color: #fff; font-weight: bold; border-color: var(--season); }
 .side .money { font-size: 34px; font-weight: bold; line-height: 1.2; }
 .side .money small { font-size: 16px; font-weight: normal; }
 .side .sub { font-size: 14px; color: #c3cbd6; }
@@ -129,12 +139,17 @@ h3 { font-size: 19px; margin: 0 0 6px; }
   min-width: 0; min-height: var(--tap); padding: 4px 3px; border-radius: 10px;
   container-type: inline-size; /* ボタン幅に合わせて文字を縮め、名前を1行に収める */
   border: 2px solid var(--line); background: #fff; cursor: pointer; text-align: center; line-height: 1.25;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .seg .opt .lb { font-size: min(17px, 19.5cqi); font-weight: bold; white-space: nowrap; }
+.seg .opt .lb:has(.pic) { font-size: min(17px, 13.5cqi); } /* アイコン付きの名前（ほうれん草など）は幅をとるので小さめに */
 .seg .opt .nt { font-size: 13px; color: var(--muted); }
 .seg .opt .nt .nw { white-space: nowrap; } /* 「・」の位置で折り返す */
-.seg .opt.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.seg .opt.on { border-color: var(--ink); background: var(--season-soft); box-shadow: inset 0 0 0 2px var(--ink); }
+.seg .opt.on::after { /* 選んだボタンの右上の✓ */
+  content: ""; position: absolute; top: -10px; right: -10px; width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid #fff; background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat;
+}
 .seg .opt .nt.t-profit { color: var(--profit); }
 .seg .opt .nt.t-env { color: var(--env); }
 .seg .opt .nt.t-region { color: var(--region); }
@@ -162,9 +177,29 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 /* plan */
 .plots { display: grid; grid-template-columns: 1fr; gap: 12px; }
 @media (min-width: 1150px) { .plots { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-.plot { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; }
+.plot { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--season); border-radius: var(--radius); padding: 10px 12px; }
 .plot-head { min-height: 44px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
 .plot-head h3 { margin: 0; }
+.main > .wrap > h2:first-child { border-bottom: 3px solid var(--season); padding-bottom: 6px; }
+.prog { font-size: 15px; font-weight: bold; color: var(--muted); white-space: nowrap; margin: 0 auto 0 12px; }
+.row .rl { line-height: 1.9; }
+.prog.done { color: var(--good); }
+.plot.todo { border-color: var(--season); box-shadow: 0 0 0 1px var(--season); }
+.seg.need .opt:not(.off) { border-style: dashed; border-color: var(--season); }
+/* 決定前の確認シート */
+.sheet-bg { position: fixed; inset: 0; z-index: 20; background: rgba(35,38,31,.45); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--panel); width: min(760px, 100%); border-radius: 18px 18px 0 0; padding: 14px 18px 18px; box-shadow: 0 -6px 24px rgba(0,0,0,.2); max-height: 92vh; overflow-y: auto; }
+.sheet h2 { margin: 0 0 6px; }
+.sheet table td { padding: 6px 6px; font-size: 16px; }
+.sheet .btns { margin: 12px 0 0; }
+/* カードをめくった後の「あなたの畑では」 */
+.myfarm { max-width: 640px; margin: 6px auto 0; display: grid; gap: 6px; }
+.myfarm > div { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 6px 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 17px; }
+.myfarm .chips { margin-left: auto; }
+.myfarm > div { animation: rise .35s cubic-bezier(.2,.8,.2,1) both; }
+.myfarm > div:nth-child(2) { animation-delay: .12s; } .myfarm > div:nth-child(3) { animation-delay: .24s; }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) { .myfarm > div { animation: none; } .card.flip { animation-duration: .01s; } }
 .mini { min-height: 44px; padding: 4px 12px; border-radius: 999px; border: 2px solid var(--accent); background: #fff; color: var(--accent); font-size: 15px; font-weight: bold; cursor: pointer; }
 .row { margin-top: 8px; }
 .row .rl { font-size: 15px; font-weight: bold; color: var(--muted); margin-bottom: 2px; }
@@ -190,7 +225,7 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 
 /* event card */
 .card-stage { perspective: 900px; display: flex; justify-content: center; margin: 16px 0; cursor: pointer; }
-.card { width: 240px; height: 320px; position: relative; transform-style: preserve-3d; }
+.card { width: 260px; height: 340px; position: relative; transform-style: preserve-3d; }
 .card.flip { animation: flip .8s ease forwards; }
 .card.shown { transform: rotateY(180deg); }
 @keyframes flip { from { transform: rotateY(0); } to { transform: rotateY(180deg); } }
@@ -198,8 +233,12 @@ h3 { font-size: 19px; margin: 0 0 6px; }
   position: absolute; inset: 0; border-radius: 18px; backface-visibility: hidden; -webkit-backface-visibility: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(0,0,0,.18);
 }
-.face.back { background: repeating-linear-gradient(45deg, #1c2430, #1c2430 12px, #2a3546 12px, #2a3546 24px); color: #fff; font-size: 64px; }
-.face.front { background: #fff; border: 4px solid var(--accent); transform: rotateY(180deg); padding: 12px; text-align: center; }
+.face.back {
+  background: radial-gradient(circle, rgba(255,255,255,.16) 0 34%, transparent 35%),
+    radial-gradient(rgba(255,255,255,.14) 1.5px, transparent 1.6px) 0 0 / 16px 16px, var(--season);
+  color: #fff; font-size: 64px;
+}
+.face.front { background: #fff; border: 4px solid var(--season); transform: rotateY(180deg); padding: 12px; text-align: center; }
 .face.front .ei { font-size: 84px; line-height: 1.1; }
 .face.front .en { font-size: 26px; font-weight: bold; margin-top: 8px; }
 .ev-text { font-size: 20px; text-align: center; max-width: 640px; margin: 0 auto; }
@@ -227,7 +266,9 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 .final .who b { font-size: 20px; }
 .total { text-align: center; }
 .total .t { font-size: 46px; font-weight: bold; line-height: 1.1; }
-.total .rank { font-size: 21px; font-weight: bold; color: var(--gold); }
+.total .rank { font-size: 30px; font-weight: bold; color: var(--ink); margin: 4px 0 0; }
+.total .rank .pic { width: 1.3em; height: 1.3em; }
+.final .panel.total { border-top: 6px solid var(--gold); }
 .scores { width: 100%; font-size: 15px; }
 .scores td { padding: 3px 4px; }
 .scores .pt { font-size: 20px; font-weight: bold; text-align: right; }
@@ -267,6 +308,7 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 .total .split > div { display: flex; align-items: baseline; gap: 6px; }
 .total .split span { font-size: 14px; color: var(--muted); }
 .total .split b { font-size: 24px; }
+.total .split b.luck { color: var(--muted); }
 .total .rank .up { font-size: 15px; color: #fff; background: var(--gold); border-radius: 999px; padding: 1px 10px; margin-left: 8px; vertical-align: 2px; }
 .radar-note { text-align: center; font-size: 13px; color: var(--muted); margin-top: -4px; }
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 40; overflow: hidden; }
@@ -451,7 +493,8 @@ const CONFIG = {
     { min: 180, name: '一人前の農家' },
     { min: -Infinity, name: '見習い農家' },
   ],
-  defaultPlot: { crop: 'spinach', pest: 'none', fert: 'none', ship: 'market' },
+  // 1年の最初（春）は虫対策・肥料・出荷先を「未選択」で始め、自分で選ぶまで決定できない（null = 未選択）
+  defaultPlot: { crop: 'spinach', pest: null, fert: null, ship: null },
   howto: [
     { icon: pics('field', 'field', 'field'), title: '3つの畑で、春夏秋冬の1年間', text: '畑は3区画。季節ごとに、区画ごとに作物を選んで植えます。最初の資金は30万円です。' },
     { icon: pics('sprout', 'house', 'bug', 'flask', 'truck'), title: '1つの区画で5つを選ぶ', text: '作物・栽培方法・虫対策・肥料・出荷先を選びます。季節の終わりにイベントカード（台風や害虫など）が1枚引かれ、どれだけとれて、いくらで売れたかが決まります。' },
@@ -521,6 +564,9 @@ function pestLoss(evId, season, crop, pest, house) {
 }
 // ctx: { seasonIdx, money, houses:[bool], nets:[bool], soil:[回数] }  plan: [{crop|null, house:bool, pest, fert, ship}]
 // nets: その区画に防虫ネットがもう張ってあるか。soil: その区画にこれまで堆肥を入れた回数
+// 未選択（null）は費用・効果0の「何もしない・なし・市場」として計算する（画面の見込み表示用。決定は全部選ぶまでできない）
+const fillPlot = (p) => ({ ...p, pest: p.pest || 'none', fert: p.fert || 'none', ship: p.ship || 'market' });
+const plotDone = (p) => !p.crop || !!(p.pest && p.fert && p.ship);
 const hasNet = (ctx, i) => !!(ctx.nets && ctx.nets[i]);
 const soilOf = (ctx, i) => (ctx.soil ? ctx.soil[i] : 0);
 function fertYield(ctx, p, i) {
@@ -532,6 +578,7 @@ function pestCost(ctx, p, i) {
   return (o.reusable && hasNet(ctx, i)) ? 0 : o.cost;
 }
 function plotCost(ctx, p, i) {
+  p = fillPlot(p);
   const season = seasonId(ctx.seasonIdx);
   const build = p.house && !ctx.houses[i] ? CONFIG.house.buildCost : 0;
   if (!p.crop) return { build, crop: 0, pest: 0, fert: 0, heat: 0, total: build };
@@ -548,6 +595,7 @@ function plotCost(ctx, p, i) {
 function planCost(ctx, plan) { return plan.reduce((s, p, i) => s + plotCost(ctx, p, i).total, 0); }
 
 function computeSeason(ctx, plan, evId, unsold) {
+  plan = plan.map(fillPlot);
   const season = seasonId(ctx.seasonIdx);
   const ev = CONFIG.events[evId];
   const cost = planCost(ctx, plan);
@@ -729,9 +777,15 @@ function makeComments(history, sc) {
 const params = new URLSearchParams(location.search);
 const app = document.getElementById('app');
 // prev: 前回の結果（ページを開いている間だけ。保存はしない）  replay: 前回と同じ1年で遊ぶか
-const state = { screen: 'title', name: '', round: 1, code: '', howtoPage: 0, game: null, prev: null, replay: false };
+const state = { screen: 'title', name: '', round: 1, code: '', howtoPage: 0, game: null, prev: null, replay: false, confirm: false };
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// C4: ふりがな。中1で読みにくい言葉に、画面に出すときだけ付ける（プレーンな文字列にだけ使う）
+const RUBY = { 区画: 'くかく', 栽培方法: 'さいばいほうほう', 出荷先: 'しゅっかさき', 資金: 'しきん', 暖房費: 'だんぼうひ',
+  台風: 'たいふう', 猛暑: 'もうしょ', 長雨: 'ながあめ', 害虫: 'がいちゅう', 価格高騰: 'かかくこうとう', 豊作: 'ほうさく', 値崩: 'ねくず',
+  寒波: 'かんぱ', 地元: 'じもと', 注文: 'ちゅうもん', 給食: 'きゅうしょく', 依頼: 'いらい', 平年並: 'へいねんな' };
+const RUBY_RE = new RegExp(Object.keys(RUBY).sort((a, b) => b.length - a.length).join('|'), 'g');
+const rb = (s) => String(s).replace(RUBY_RE, (k) => `<ruby class="r">${k}<rt>${RUBY[k]}</rt></ruby>`);
 const fmt = (x) => { const v = round1(x); return Number.isInteger(v) ? String(v) : v.toFixed(1); };
 const signed = (x) => (x > 0 ? '+' : x < 0 ? '−' : '±') + fmt(Math.abs(x));
 const pct = (x) => Math.round(x * 100) + '%';
@@ -805,7 +859,7 @@ function applyPick(g, plan, i, field, value) {
 function planEffects(g, plan) {
   const season = seasonId(g.seasonIdx);
   let env = 0, region = 0;
-  plan.forEach((p) => {
+  plan.map(fillPlot).forEach((p) => {
     if (!p.crop) return;
     env += CONFIG.fertOptions[p.fert].env + CONFIG.pestOptions[p.pest].env;
     if (season === 'winter' && p.house) env += CONFIG.house.heatEnv;
@@ -832,7 +886,7 @@ function sidePanel() {
   return `<aside class="side" aria-label="いまの状態">
     <div><div class="lbl">季節</div><div class="stepper">${CONFIG.seasons.map((s, i) =>
       `<span class="${i === cur ? 'now' : i < cur ? 'done' : ''}">${s.name}</span>`).join('')}</div></div>
-    <div><div class="lbl">資金</div><div class="money">${fmt(money)}<small> 万円</small></div>
+    <div><div class="lbl">${rb('資金')}</div><div class="money">${fmt(money)}<small> 万円</small></div>
       ${fx ? `<div class="sub">この計画の費用 ${fmt(fx.cost)} → 残り ${fmt(money - fx.cost)}</div>` : ''}</div>
     ${meters.map((m) => `<div class="meter">
       <div class="mh"><span class="mn" style="color:${m.color}">${pic(m.pic)} ${m.name}</span><span class="ms">${m.v}<small> 点</small></span></div>
@@ -896,8 +950,8 @@ screens.howto = () => {
   </div>`;
 };
 
-function segment(g, plan, i, field, items) {
-  return `<div class="seg n${items.length}"${items.length < 4 ? ` style="--n:${items.length}"` : ''}>${items.map((it) => {
+function segment(g, plan, i, field, items, extra = '') {
+  return `<div class="seg n${items.length}${extra}"${items.length < 4 ? ` style="--n:${items.length}"` : ''}>${items.map((it) => {
     const reason = blockReason(g, plan, i, field, it.value);
     const on = plan[i][field] === it.value;
     return `<button class="opt ${on ? 'on' : ''} ${reason && !on ? 'off' : ''}" data-act="pick" data-i="${i}" data-f="${field}" data-v="${it.value === null ? '' : it.value}" ${reason && !on ? `data-reason="${esc(reason)}"` : ''} aria-pressed="${on}">
@@ -920,12 +974,13 @@ screens.plan = () => {
   const total = planCost(ctx, plan);
   const left = round1(g.money - total);
   const over = total > g.money;
+  const todo = plan.map((p, i) => plotDone(p) ? '' : `${rb('区画')}${i + 1}の${[['pest', '③'], ['fert', '④'], ['ship', '⑤']].filter(([f]) => !p[f]).map(([, n]) => n).join('')}`).filter(Boolean);
   const normal = computeSeason(ctx, plan, 'normal', false);  // 平年並み・売れ残りなしのときの見込み
   const deck = CONFIG.deck[season];
   const deckHtml = `<div class="deck-bar"><span class="lbl">この季節に引くカード（数字は枚数）</span><div class="deck">${CONFIG.eventOrder.filter((k) => deck[k] > 0).map((k) => {
     const e = CONFIG.events[k];
-    return `<span class="ev">${e.icon} ${e.name}<b>×${deck[k]}</b></span>`;
-  }).join('')}</div><div class="dh">${pic('hint')} ${CONFIG.seasonHints[season]}</div></div>`;
+    return `<span class="ev">${e.icon} ${rb(e.name)}<b>×${deck[k]}</b></span>`;
+  }).join('')}</div><div class="dh">${pic('hint')} ${rb(CONFIG.seasonHints[season])}</div></div>`;
   const cards = plan.map((p, i) => {
     const pc = plotCost(ctx, p, i);
     const cropItems = [...CONFIG.cropOrder.filter((c) => CONFIG.crops[c].seasons.includes(season)), null].map((c) => c
@@ -934,7 +989,7 @@ screens.plan = () => {
     const offSeason = CONFIG.cropOrder.filter((c) => !CONFIG.crops[c].seasons.includes(season));
     const houseItems = [
       { value: false, label: '<ruby>露地<rt>ろじ</rt></ruby>', note: '天候の影響を受ける' },
-      { value: true, label: `${pic('house')} ハウス`, note: g.houses[i] ? (season === 'winter' ? `建設済み・暖房費${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : '建設済み') : `建設費${CONFIG.house.buildCost}${season === 'winter' ? `・暖房費${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : ''}` },
+      { value: true, label: `${pic('house')} ハウス`, note: g.houses[i] ? (season === 'winter' ? `建設済み・${rb('暖房費')}${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : '建設済み') : `建設費${CONFIG.house.buildCost}${season === 'winter' ? `・${rb('暖房費')}${CONFIG.house.heatCost}・環境−${-CONFIG.house.heatEnv}` : ''}` },
     ];
     const pestItems = CONFIG.pestOrder.map((k) => {
       const o = CONFIG.pestOptions[k];
@@ -949,16 +1004,19 @@ screens.plan = () => {
       return { value: k, label: f.label, note: costNote(f.cost, f.env, extra), tone: f.env ? 'env' : '' };
     });
     const shipItems = CONFIG.shipOrder.map((k) => { const s = CONFIG.shipOptions[k]; return { value: k, label: s.label, note: (s.region ? `地域+${s.region}・` : '') + s.note, tone: s.region ? 'region' : 'profit' }; });
-    return `<div class="plot ${p.crop ? '' : 'empty'}">
-      <div class="plot-head"><h3>区画${i + 1} ${g.houses[i] ? pic('house') : ''}</h3>
+    const nDone = p.crop ? 2 + ['pest', 'fert', 'ship'].filter((f) => p[f]).length : 5;
+    const need = (f) => (p.crop && !p[f] ? ' need' : '');
+    return `<div class="plot ${p.crop ? '' : 'empty'} ${plotDone(p) ? '' : 'todo'}">
+      <div class="plot-head"><h3>${rb('区画')}${i + 1} ${g.houses[i] ? pic('house') : ''}</h3>
+        <span class="prog ${plotDone(p) ? 'done' : ''}">${plotDone(p) ? '✓ 選んだ' : `${nDone}/5 選んだ`}</span>
         ${i > 0 ? `<button class="mini" data-act="copyLeft" data-i="${i}">◀ 区画${i}と同じ</button>` : ''}</div>
       <div class="row"><div class="rl">① 作物</div>${segment(g, plan, i, 'crop', cropItems)}
         <div class="small muted" style="margin-top:2px">${p.crop ? CONFIG.crops[p.crop].note : ''}${offSeason.length ? `　今は植えられない：${offSeason.map((c) => CONFIG.crops[c].icon).join('')}` : ''}</div></div>
-      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">② 栽培方法</div>${segment(g, plan, i, 'house', houseItems)}</div>
-      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">③ 虫対策</div>${segment(g, plan, i, 'pest', pestItems)}</div>
-      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">④ 肥料</div>${segment(g, plan, i, 'fert', fertItems)}</div>
-      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">⑤ 出荷先</div>${segment(g, plan, i, 'ship', shipItems)}</div>
-      <div class="plot-foot">${p.crop ? `<span>平年並みなら 売上 約<b>${fmt(normal.plots[i].sales)}</b>万円</span>` : '<span></span>'}<span>この区画の費用 <b>${fmt(pc.total)}</b>万円</span></div>
+      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">② ${rb('栽培方法')}</div>${segment(g, plan, i, 'house', houseItems)}</div>
+      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">③ 虫対策${need('pest') ? '（まだ）' : ''}</div>${segment(g, plan, i, 'pest', pestItems, need('pest'))}</div>
+      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">④ 肥料${need('fert') ? '（まだ）' : ''}</div>${segment(g, plan, i, 'fert', fertItems, need('fert'))}</div>
+      <div class="row ${p.crop ? '' : 'dim'}"><div class="rl">⑤ ${rb('出荷先')}${need('ship') ? '（まだ）' : ''}</div>${segment(g, plan, i, 'ship', shipItems, need('ship'))}</div>
+      <div class="plot-foot">${p.crop && plotDone(p) ? `<span>平年並みなら 売上 約<b>${fmt(normal.plots[i].sales)}</b>万円</span>` : '<span></span>'}<span>この区画の費用 <b>${fmt(pc.total)}</b>万円</span></div>
     </div>`;
   }).join('');
   const nDirect = countDirect(plan);
@@ -972,10 +1030,30 @@ screens.plan = () => {
   <div class="foot">
     <div class="legend">色の意味：<b class="p">利益</b>・<b class="e">環境</b>・<b class="r">地域</b></div>
     <div class="money">費用合計 <b>${fmt(total)}</b>万円　残り資金 <b class="${over ? 'bad' : ''}">${fmt(left)}</b>万円</div>
-    ${over ? '<div class="bad">資金が足りません。選択を変えてください。</div>' : ''}
-    <button class="btn ${over ? 'off' : ''}" data-act="decide" ${over ? 'data-reason="資金が足りないので決定できません。"' : ''}>決定（カードを引く）</button>
-  </div>`;
+    ${over ? '<div class="bad">資金が足りません。選択を変えてください。</div>' : todo.length ? `<div class="bad">まだ選んでいない：${todo.join('、')}</div>` : ''}
+    <button class="btn ${over || todo.length ? 'off' : ''}" data-act="decide" ${over ? 'data-reason="資金が足りないので決定できません。"' : todo.length ? 'data-reason="まだ選んでいないところがあります。点線のボタンから選んでください。"' : ''}>決定（カードを引く）</button>
+  </div>
+  ${state.confirm ? confirmSheet(g, total, left) : ''}`;
 };
+
+// C2: 決定前の確認。カードを引いたらやり直せないので、3区画の選択を1行ずつ見せる
+function confirmSheet(g, total, left) {
+  const ctx = ctxOf(g);
+  const rows = g.plan.map((p, i) => {
+    const cost = plotCost(ctx, p, i).total;
+    if (!p.crop) return `<tr><td>${rb('区画')}${i + 1}</td><td colspan="2" class="muted">植えない</td><td class="num">${fmt(cost)}万円</td></tr>`;
+    const c = CONFIG.crops[p.crop];
+    return `<tr><td>${rb('区画')}${i + 1}</td><td><b>${c.icon} ${c.name}</b>${p.house ? ` ${pic('house')}` : ''}</td>
+      <td>${p.house ? 'ハウス' : '露地'}・${CONFIG.pestOptions[p.pest].short}・${CONFIG.fertOptions[p.fert].short}・${CONFIG.shipOptions[p.ship].short}</td><td class="num">${fmt(cost)}万円</td></tr>`;
+  }).join('');
+  return `<div class="sheet-bg"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-h">
+    <h2 id="sheet-h">この作戦でカードを引きますか？</h2>
+    <p class="small muted" style="margin:0 0 6px">カードを引くと、この季節の選択はやり直せません。</p>
+    <table><tbody>${rows}</tbody></table>
+    <div class="money center" style="margin-top:8px">費用合計 <b>${fmt(total)}</b>万円　残り${rb('資金')} <b>${fmt(left)}</b>万円</div>
+    <div class="btns"><button class="btn" data-act="draw">これでカードを引く</button><button class="btn sub" data-act="confirmOff">もどって直す</button></div>
+  </div></div>`;
+}
 
 screens.event = () => {
   const g = state.game;
@@ -986,16 +1064,23 @@ screens.event = () => {
     <div class="card-stage" data-act="skipFlip">
       <div class="card ${g.revealed ? 'shown' : 'flip'}">
         <div class="face back">${pic('grain')}</div>
-        <div class="face front"><div class="ei">${e.icon}</div><div class="en">${e.name}</div></div>
+        <div class="face front"><div class="ei">${e.icon}</div><div class="en">${rb(e.name)}</div></div>
       </div>
     </div>
-    ${g.revealed ? `<p class="ev-text">${e.text}</p>
+    ${g.revealed ? `<p class="ev-text">${rb(e.text)}</p>
+      ${myFarm(r)}
       ${r.nDirect > 0 ? `<p class="ev-text">${r.unsold ? `${pic('store')} 直売所で売れ残りが出てしまった…（直売所の売上×0.7）` : `${pic('store')} 直売所はすべて売り切れた！`}</p>` : ''}
       <div class="btns"><button class="btn" data-act="toResult">結果を見る</button></div>`
       : '<p class="center muted">タップでとばせます</p>'}
   </div>`;
 };
 
+// C3: カードをめくったら、自分の区画への影響をすぐ見せる（金額は結果画面で）
+function myFarm(r) {
+  const rows = r.plots.map((p, i) => p.empty ? '' : `<div><b>${rb('区画')}${i + 1}</b> ${CONFIG.crops[p.crop].icon} ${CONFIG.crops[p.crop].name}
+    <span class="chips">${plotChips(p)}</span><span class="small muted">収量 ${pct(p.yieldRate)}</span></div>`).join('');
+  return rows ? `<div class="myfarm" aria-label="あなたの畑では">${rows}</div>` : '';
+}
 function plotChips(p) {
   const chips = [];
   if (p.fertRate) chips.push(`<span class="chip up">肥料+${pct(p.fertRate)}</span>`);
@@ -1035,10 +1120,10 @@ screens.result = () => {
   }).join('');
   const net = round1(r.money - r.moneyBefore);
   return `<div class="wrap" style="max-width:1000px">
-    <h2>${CONFIG.seasons[g.seasonIdx].icon} ${CONFIG.seasons[g.seasonIdx].name}の結果　${CONFIG.events[r.event].icon} ${CONFIG.events[r.event].name}</h2>
+    <h2>${CONFIG.seasons[g.seasonIdx].icon} ${CONFIG.seasons[g.seasonIdx].name}の結果　${CONFIG.events[r.event].icon} ${rb(CONFIG.events[r.event].name)}</h2>
     <div class="panel" style="overflow-x:auto">
       <table>
-        <tr><th>区画</th><th>収量の内訳</th><th>出荷先</th><th>環境・地域</th><th class="num">費用</th><th class="num">売上</th></tr>
+        <tr><th>${rb('区画')}</th><th>収量の内訳</th><th>${rb('出荷先')}</th><th>環境・地域</th><th class="num">費用</th><th class="num">売上</th></tr>
         ${rows}
         ${r.bonusMoney ? `<tr><td colspan="4">${pic('lunch')} 給食センターからの依頼（地域+${r.bonusRegion}）</td><td></td><td class="num"><b>+${fmt(r.bonusMoney)}</b></td></tr>` : ''}
       </table>
@@ -1120,14 +1205,14 @@ screens.final = () => {
       <div class="stack">
         <div class="panel total">
           <div class="small muted">持続可能な農業スコア（300点満点）</div>
+          <div class="rank">${pic('medal')} ${ex.rank}${rankUp ? '<span class="up">称号アップ！</span>' : ''}</div>
           <div class="t">${sc.total}<span style="font-size:22px">点</span></div>
           ${prev ? `<div class="vs">${prev.round}回目${sameYear ? '（同じ1年）' : ''}と比べて　スコア ${diff(prev.sc.total, sc.total)}　作戦の力 ${diff(prev.ex.total, ex.total)}</div>` : ''}
           <div class="split">
             <div><span>作戦の力</span><b>${ex.total}</b>点</div>
-            <div><span>天気・できごとの運</span><b class="${luck >= 0 ? 'plus' : 'minus'}">${signed(luck)}</b>点</div>
+            <div><span>天気・できごとの運</span><b class="luck">${signed(luck)}</b>点</div>
           </div>
           <div class="small muted">作戦の力＝同じ選び方で何回も1年を過ごしたときの平均点。称号は作戦の力で決まります。</div>
-          <div class="rank">${pic('medal')} ${ex.rank}${rankUp ? '<span class="up">称号アップ！</span>' : ''}</div>
           ${(() => { const nx = [...CONFIG.ranks].reverse().find((k) => k.min > ex.total); return nx ? `<div class="small muted">作戦の力があと${nx.min - ex.total}点で「${nx.name}」</div>` : ''; })()}
         </div>
         <div class="panel">
@@ -1176,6 +1261,7 @@ let flipTimer = null;
 function render() {
   const fn = screens[state.screen];
   document.body.classList.toggle('final-page', state.screen === 'final');
+  document.body.dataset.season = state.game && state.screen !== 'final' ? CONFIG.seasons[Math.min(state.game.seasonIdx, 3)].id : '';
   const inGame = state.game && ['plan', 'event', 'result'].includes(state.screen);
   app.innerHTML = inGame ? `<div class="shell">${sidePanel()}<main class="main">${fn()}</main></div>` : fn();
   if (state.screen === 'final') celebrate();
@@ -1198,7 +1284,10 @@ const actions = {
   howto: () => { state.howtoPage = 0; go('howto'); },
   howtoNext: () => { state.howtoPage++; render(); },
   toTitle: () => go('title'),
-  start: () => { const g = state.game = newGame(); g.plan = defaultPlan(g); go('plan'); },
+  start: () => {
+    if (!state.name.trim()) { toast('名前（出席番号）を入れてから、はじめるをおしてください。'); const n = document.getElementById('name'); if (n) n.focus(); return; }
+    const g = state.game = newGame(); g.plan = defaultPlan(g); go('plan');
+  },
   pick: (el) => {
     const g = state.game;
     const f = el.dataset.f;
@@ -1220,8 +1309,15 @@ const actions = {
   },
   decide: () => {
     const g = state.game;
+    if (planCost(ctxOf(g), g.plan) > g.money || !g.plan.every(plotDone)) return;
+    state.confirm = true; render();
+  },
+  confirmOff: () => { state.confirm = false; render(); },
+  draw: () => {
+    const g = state.game;
     const ctx = ctxOf(g);
-    if (planCost(ctx, g.plan) > g.money) return;
+    state.confirm = false;
+    if (planCost(ctx, g.plan) > g.money || !g.plan.every(plotDone)) { render(); return; }
     const ev = drawEvent(seasonId(g.seasonIdx), g.rngEv);
     const unsold = drawUnsold(countDirect(g.plan), ev, g.rngMisc);
     const r = computeSeason(ctx, g.plan, ev, unsold);
@@ -1256,6 +1352,9 @@ document.addEventListener('click', (e) => {
 document.addEventListener('input', (e) => {
   if (e.target.id === 'name') state.name = e.target.value;
   if (e.target.id === 'code') state.code = e.target.value;
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.confirm) { state.confirm = false; render(); }
 });
 window.addEventListener('beforeunload', (e) => {
   if (state.game && state.screen !== 'final') { e.preventDefault(); e.returnValue = ''; }
