@@ -320,6 +320,107 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 .debug td, .debug th { border: 1px solid var(--line); }
 .ok { color: var(--good); font-weight: bold; }
 .ng { color: var(--warn); font-weight: bold; }
+/* =====================================================================
+ * 任天堂っぽさサンプル（手触り・演出）。数値・ルールは変えない
+ * ===================================================================== */
+:root { --press: #0c0e0a; --pop: cubic-bezier(.3, 1.7, .5, 1); --gold2: #e9b22b; }
+/* ボタン：厚みのある「押せる」形。押すと沈む */
+.btn { box-shadow: 0 6px 0 var(--press); transition: transform .06s, box-shadow .06s, background .2s; letter-spacing: .04em; }
+.btn:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--press); }
+.btn.sub { box-shadow: 0 5px 0 var(--line); }
+.btn.sub:active { box-shadow: 0 1px 0 var(--line); }
+.btn.off { box-shadow: 0 4px 0 #d3d6db; }
+/* 全部選んだら決定ボタンが季節色で起きあがる */
+.foot .btn:not(.off), .btn.ready {
+  background: var(--season); box-shadow: 0 6px 0 color-mix(in srgb, var(--season) 55%, #000);
+  animation: wake .5s var(--pop), bob 1.6s ease-in-out .5s infinite;
+}
+.foot .btn:not(.off):active { animation: none; transform: translateY(5px); box-shadow: 0 1px 0 color-mix(in srgb, var(--season) 55%, #000); }
+@keyframes wake { 0% { transform: scale(.85); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+/* 選択ボタン：下に厚み。選ぶと沈んで✓がはねる */
+.seg .opt { box-shadow: 0 3px 0 var(--line); transition: transform .06s, box-shadow .06s; }
+.seg .opt:active { transform: translateY(3px); box-shadow: 0 0 0 var(--line); }
+.seg .opt.on { transform: translateY(2px); box-shadow: inset 0 0 0 2px var(--ink), 0 1px 0 var(--ink); }
+.seg .opt.off { box-shadow: none; }
+.seg .opt.pop { animation: squash .28s var(--pop); }
+.seg .opt.pop::after { animation: badge .32s var(--pop) .04s both; }
+@keyframes squash { 0% { transform: scale(.9, .86); } 45% { transform: scale(1.06, 1.04); } 100% { transform: translateY(2px) scale(1); } }
+@keyframes badge { 0% { transform: scale(0) rotate(-40deg); } 100% { transform: scale(1) rotate(0); } }
+.seg .opt.nope { animation: nope .3s; }
+@keyframes nope { 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+
+/* 区画が5/5になったらハンコ */
+.prog.done { color: #fff; background: var(--good); border-radius: 999px; padding: 2px 12px; }
+.prog.stamp { animation: stamp .42s var(--pop); }
+@keyframes stamp { 0% { transform: scale(2.4) rotate(-14deg); opacity: 0; } 35% { transform: scale(.92) rotate(-4deg); opacity: 1; } 55% { transform: scale(.92) rotate(-4deg); } 100% { transform: scale(1) rotate(0); } }
+.plot.done-flash { animation: plotflash .5s ease-out; }
+@keyframes plotflash { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--good) 60%, transparent); } 100% { box-shadow: 0 0 0 14px transparent; } }
+
+/* 季節が変わる瞬間のワイプ（操作はさえぎらない） */
+.season-wipe { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.season-wipe .band { width: 100%; padding: 18px 0; background: var(--season); color: #fff; display: flex; align-items: center; justify-content: center; gap: 18px;
+  font-size: 54px; font-weight: bold; letter-spacing: .1em; box-shadow: 0 8px 0 color-mix(in srgb, var(--season) 55%, #000);
+  animation: wipe .9s cubic-bezier(.7, 0, .3, 1) forwards; }
+.season-wipe .band .pic { width: 1.1em; height: 1.1em; outline: 4px solid #fff; border-radius: 8px; }
+@keyframes wipe { 0% { transform: translateX(-100%) skewX(-12deg); } 25%, 70% { transform: translateX(0) skewX(-12deg); } 100% { transform: translateX(100%) skewX(-12deg); } }
+
+/* イベントカード：ためる → 一瞬でめくる → 止まる（ヒットストップ）→ 着地 */
+.card.flip { animation: flip-n .8s linear forwards; }
+@keyframes flip-n {
+  0%   { transform: rotateZ(0) rotateY(0) scale(1); animation-timing-function: ease-out; }
+  12%  { transform: rotateZ(-6deg) rotateY(0) scale(1.06); }
+  24%  { transform: rotateZ(6deg) rotateY(0) scale(1.06); }
+  34%  { transform: rotateZ(0) rotateY(0) scale(1.1); animation-timing-function: cubic-bezier(.6, 0, .2, 1); }
+  62%  { transform: rotateZ(0) rotateY(180deg) scale(1.2); }
+  76%  { transform: rotateZ(0) rotateY(180deg) scale(1.2); animation-timing-function: cubic-bezier(.3, 1.6, .5, 1); }
+  100% { transform: rotateZ(0) rotateY(180deg) scale(1); }
+}
+.card-stage { position: relative; }
+.card-stage.shake { animation: shake .45s linear; }
+@keyframes shake { 0% { transform: translate(0); } 10% { transform: translate(-10px, 4px); } 25% { transform: translate(8px, -3px); } 40% { transform: translate(-5px, 2px); } 60% { transform: translate(3px, -1px); } 80% { transform: translate(-1px, 0); } 100% { transform: translate(0); } }
+.burst { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; z-index: 2; }
+.burst svg { position: absolute; left: -18px; top: -18px; width: 36px; height: 36px; animation: fly .6s cubic-bezier(.1, .8, .3, 1) forwards; }
+@keyframes fly { 0% { transform: translate(0, 0) scale(.3) rotate(0); opacity: 1; } 75% { opacity: 1; } 100% { transform: translate(var(--x), var(--y)) scale(1) rotate(var(--r)); opacity: 0; } }
+.verdict { position: absolute; top: -6px; left: 50%; z-index: 3; white-space: nowrap; font-size: 30px; font-weight: bold; letter-spacing: .06em;
+  padding: 2px 20px 4px; border-radius: 12px; border: 4px solid #fff; color: #fff; transform: translateX(-50%) rotate(-6deg);
+  animation: vstamp .45s var(--pop) .05s both; box-shadow: 0 5px 0 rgba(0, 0, 0, .25); }
+.verdict.bad { background: #b3261e; } .verdict.safe { background: var(--good); } .verdict.lucky { background: #d48a00; } .verdict.calm { background: #5b6b7e; }
+@keyframes vstamp { 0% { transform: translateX(-50%) scale(2.6) rotate(-16deg); opacity: 0; } 40% { transform: translateX(-50%) scale(.94) rotate(-6deg); opacity: 1; } 100% { transform: translateX(-50%) scale(1) rotate(-6deg); } }
+.myfarm .chip.down { animation: thud .3s var(--pop) both; }
+.myfarm > div:nth-child(1) .chip.down { animation-delay: .25s; } .myfarm > div:nth-child(2) .chip.down { animation-delay: .37s; } .myfarm > div:nth-child(3) .chip.down { animation-delay: .49s; }
+@keyframes thud { 0% { transform: scale(1.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.yb { display: inline-block; width: 64px; height: 10px; border-radius: 5px; background: #e6e1d2; overflow: hidden; vertical-align: middle; margin-left: 4px; }
+.yb i { display: block; height: 100%; background: var(--good); width: 0; transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+.yb i.low { background: #d06a1f; } .yb i.bad { background: var(--warn); }
+
+/* サイドパネルの数字がカウントアップ、バーが伸びる */
+.meter .mbar i { transition: width .6s cubic-bezier(.2, .8, .2, 1); }
+.side .money.tick, .summary .v.tick { animation: tick .5s var(--pop); }
+@keyframes tick { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
+
+/* タイトル：作物が順番にはねる */
+.hero .icons .pic { animation: hop 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.hero .icons .pic:nth-child(2) { animation-delay: .15s; } .hero .icons .pic:nth-child(3) { animation-delay: .3s; }
+.hero .icons .pic:nth-child(4) { animation-delay: .45s; } .hero .icons .pic:nth-child(5) { animation-delay: .6s; }
+@keyframes hop { 0%, 30%, 100% { transform: translateY(0) scale(1); } 8% { transform: translateY(0) scale(1.15, .85); } 17% { transform: translateY(-16px) scale(.92, 1.1); } 26% { transform: translateY(0) scale(1.1, .9); } }
+.hero h1 { font-size: 40px; letter-spacing: .04em; text-shadow: 0 3px 0 #fff, 0 6px 0 var(--line); }
+.snd { display: inline-flex; align-items: center; gap: 6px; }
+.side .snd { align-self: flex-start; min-height: 36px; font-size: 13px; padding: 2px 12px; margin-top: auto; background: transparent; color: #c3cbd6; border-color: #59604f; }
+
+/* 最終画面：点数がカウントアップ → 称号がハンコで決まる */
+.total.intro .rank, .total.intro .split, .total.intro .vs { visibility: hidden; }
+.total .rank.slam { animation: rslam .5s var(--pop); }
+@keyframes rslam { 0% { transform: scale(3) rotate(-10deg); opacity: 0; } 30% { transform: scale(.9) rotate(-2deg); opacity: 1; } 50% { transform: scale(.9) rotate(-2deg); } 100% { transform: scale(1) rotate(0); } }
+.final .panel.total.thump { animation: shake .35s linear; }
+.total .rank { display: inline-block; background: linear-gradient(#fff6d8, #ffe9a6); border: 3px solid var(--gold2); border-radius: 999px; padding: 0 20px 2px; margin-top: 0; box-shadow: 0 4px 0 #c79010; }
+@media (min-width: 900px) and (max-height: 820px) { .total .rank { font-size: 26px; } .final .panel.total { padding-top: 6px; padding-bottom: 6px; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .season-wipe, .burst { display: none; }
+  .hero .icons .pic, .foot .btn:not(.off), .seg .opt.pop, .prog.stamp, .card-stage.shake, .verdict, .total .rank.slam { animation: none !important; }
+}
 </style>
 </head>
 <body>
@@ -1519,6 +1620,332 @@ function renderSim(n) {
 if (params.get('test')) renderTests();
 else if (params.get('sim')) renderSim(Math.max(100, Number(params.get('sim')) || 2000));
 else render();
+</script>
+<script>
+'use strict';
+/* =========================================================================
+ * 任天堂っぽさサンプル：手触り・演出・効果音のレイヤー
+ *   ゲームの計算（CONFIG・computeSeason など）には一切さわらない。
+ *   render() のあとに「前と何が変わったか」を見て、演出だけを足す。
+ * ========================================================================= */
+(() => {
+  const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- 効果音（WebAudio で合成。音声ファイルなし） ---- */
+  const SE = (() => {
+    let ac = null;
+    let on = false;   // 最初は音なし（教室で一斉に鳴らないように）。設定は保存しない
+    const ctx = () => {
+      if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+      if (ac.state === 'suspended') ac.resume();
+      return ac;
+    };
+    function tone(f, t, d, o = {}) {
+      const c = ctx(), t0 = c.currentTime + t;
+      const os = c.createOscillator(), g = c.createGain();
+      os.type = o.type || 'square';
+      os.frequency.setValueAtTime(f, t0);
+      if (o.to) os.frequency.exponentialRampToValueAtTime(o.to, t0 + d);
+      const v = (o.vol || 0.06);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(v, t0 + 0.005);   // アタックは強く
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+      os.connect(g).connect(c.destination);
+      os.start(t0); os.stop(t0 + d + 0.02);
+    }
+    function noise(t, d, o = {}) {
+      const c = ctx(), t0 = c.currentTime + t;
+      const buf = c.createBuffer(1, Math.ceil(c.sampleRate * d), c.sampleRate);
+      const a = buf.getChannelData(0);
+      for (let i = 0; i < a.length; i++) a[i] = Math.random() * 2 - 1;
+      const src = c.createBufferSource(); src.buffer = buf;
+      const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2;
+      bp.frequency.setValueAtTime(o.from || 1200, t0);
+      bp.frequency.exponentialRampToValueAtTime(o.to || 3000, t0 + d);
+      const g = c.createGain();
+      g.gain.setValueAtTime(o.vol || 0.12, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+      src.connect(bp).connect(g).connect(c.destination);
+      src.start(t0);
+    }
+    const N = { C5: 523, D5: 587, E5: 659, G5: 784, A5: 880, C6: 1047, E6: 1319, G6: 1568, C4: 262, Eb4: 311, G4: 392, Ab4: 415 };
+    const S = {
+      tap:     () => tone(880, 0, 0.05, { vol: 0.04 }),
+      pick:    () => { tone(N.E5, 0, 0.05); tone(N.A5, 0.045, 0.08); },
+      nope:    () => { tone(170, 0, 0.09, { type: 'triangle', vol: 0.12 }); tone(150, 0.1, 0.12, { type: 'triangle', vol: 0.12 }); },
+      ting:    () => { tone(N.E6, 0, 0.09, { type: 'triangle', vol: 0.08 }); tone(N.G6, 0.07, 0.2, { type: 'triangle', vol: 0.08 }); },
+      ready:   () => [N.C5, N.E5, N.G5, N.C6].forEach((f, i) => tone(f, i * 0.06, 0.12, { vol: 0.05 })),
+      open:    () => { tone(N.G5, 0, 0.06); tone(N.C6, 0.06, 0.1); },
+      whoosh:  () => noise(0, 0.5, { from: 400, to: 3500, vol: 0.08 }),
+      shuffle: () => { for (let i = 0; i < 4; i++) noise(i * 0.06, 0.05, { from: 3000, to: 1500, vol: 0.07 }); },
+      flip:    () => noise(0, 0.18, { from: 800, to: 5000, vol: 0.12 }),
+      lucky:   () => [N.C5, N.E5, N.G5, N.C6, N.E6].forEach((f, i) => tone(f, i * 0.07, i === 4 ? 0.35 : 0.1, { vol: 0.06 })),
+      safe:    () => { tone(N.G5, 0, 0.08); tone(N.C6, 0.08, 0.08); tone(N.G6, 0.16, 0.3, { type: 'triangle', vol: 0.08 }); },
+      calm:    () => { tone(N.E5, 0, 0.18, { type: 'triangle', vol: 0.08 }); tone(N.G5, 0.12, 0.3, { type: 'triangle', vol: 0.08 }); },
+      bad:     () => { noise(0, 0.25, { from: 300, to: 80, vol: 0.25 }); [N.G4, N.Eb4, N.C4].forEach((f, i) => tone(f, 0.05 + i * 0.12, 0.16, { type: 'sawtooth', vol: 0.04 })); },
+      count:   () => tone(1200, 0, 0.025, { vol: 0.025 }),
+      fanfare: () => { noise(0, 0.15, { from: 200, to: 60, vol: 0.25 });
+        [[N.C5, 0], [N.E5, 0.1], [N.G5, 0.2], [N.C6, 0.3]].forEach(([f, t]) => tone(f, t, t === 0.3 ? 0.5 : 0.1, { vol: 0.06 }));
+        tone(N.E6, 0.3, 0.5, { type: 'triangle', vol: 0.05 }); },
+    };
+    return {
+      get on() { return on; },
+      set(v) { on = v; },
+      play(n, delay = 0) { if (!on || !S[n]) return; if (delay) setTimeout(() => S[n](), delay); else { try { S[n](); } catch (e) { /* 音が出せない端末 */ } } },
+      unlock() { if (on) try { ctx(); } catch (e) { /* なし */ } },
+    };
+  })();
+  window.SE = SE;
+
+  /* ---- 数字のカウントアップ ---- */
+  function countUp(node, from, to, ms, fmtFn, onStep) {
+    if (RM || from === to) { node.nodeValue = fmtFn(to); return; }
+    const t0 = performance.now();
+    let last = from;
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / ms);
+      const v = from + (to - from) * (1 - Math.pow(1 - k, 3));
+      node.nodeValue = fmtFn(k < 1 ? Math.round(v) : to);
+      if (onStep && Math.round(v) !== Math.round(last)) onStep(Math.round(v));
+      last = v;
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /* ---- どのボタンが押されたかを覚える（音もここで鳴らす） ---- */
+  const J = { pick: null, seen: new Set() };
+  const ACT_SE = { pick: 'pick', copyLeft: 'pick', decide: 'open', draw: 'shuffle', skipFlip: null, start: 'open', toResult: 'tap' };
+  document.addEventListener('click', (e) => {
+    const snd = e.target.closest('[data-snd]');
+    if (snd) { SE.set(!SE.on); SE.unlock(); SE.play('pick'); render(); return; }
+    const el = e.target.closest('[data-act]');
+    if (!el) return;
+    SE.unlock();
+    if (el.dataset.reason) {
+      SE.play('nope');
+      if (!RM) { el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope'); }
+      return;
+    }
+    const act = el.dataset.act;
+    if (act === 'pick') J.pick = { i: el.dataset.i, f: el.dataset.f, v: el.dataset.v };
+    if (act === 'start' && !state.name.trim()) { SE.play('nope'); return; }
+    SE.play(act in ACT_SE ? ACT_SE[act] : 'tap');
+  }, true);
+
+  /* ---- イベントの「ピンチ／セーフ／ラッキー」判定（表示だけ。点数には関係しない） ---- */
+  function verdict(r) {
+    const ps = r.plots.filter((p) => !p.empty);
+    if (!ps.length) return { k: 'calm', t: 'おだやか' };
+    const ev = r.event;
+    const weather = ['typhoon', 'heat', 'rain', 'frost'].includes(ev);
+    let hurt = false;
+    if (weather) hurt = ps.some((p) => p.weatherLoss > 0);
+    if (ev === 'pest') hurt = ps.some((p) => p.pestLoss > 0);
+    if (ev === 'crash') hurt = ps.some((p) => p.ship === 'market');
+    if (weather || ev === 'pest' || ev === 'crash') return hurt ? { k: 'bad', t: 'ピンチ！' } : { k: 'safe', t: 'セーフ！' };
+    if ((ev === 'high' && ps.some((p) => p.ship === 'market')) || (ev === 'super' && r.nDirect > 0) || ev === 'school') return { k: 'lucky', t: 'ラッキー！' };
+    return { k: 'calm', t: 'おだやか' };
+  }
+  const STAR = (c) => `<svg viewBox="-12 -12 24 24"><polygon points="0,-11 3,-3.5 11,-3.4 4.8,1.6 7,10 0,5.2 -7,10 -4.8,1.6 -11,-3.4 -3,-3.5" fill="${c}" stroke="#5a3d00" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
+  const SPIKE = (c) => `<svg viewBox="-12 -12 24 24"><polygon points="0,-11 3,-4 10,-6 5,0 11,5 3,4 0,11 -3,4 -11,5 -5,0 -10,-6 -3,-4" fill="${c}" stroke="#1d1f1a" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+  function burst(stage, kind) {
+    if (RM) return;
+    const b = document.createElement('div');
+    b.className = 'burst';
+    const n = kind === 'bad' ? 9 : 12;
+    let html = '';
+    for (let k = 0; k < n; k++) {
+      const a = (k / n) * Math.PI * 2 + (k % 2) * 0.2;
+      const d = 170 + (k % 3) * 28;
+      const shape = kind === 'bad' ? SPIKE(k % 3 ? '#4a4d44' : '#b3261e') : kind === 'calm' ? STAR(k % 2 ? '#c9d3de' : '#ffffff') : STAR(k % 2 ? '#ffd23f' : '#fff3b0');
+      html += shape.replace('<svg', `<svg style="--x:${Math.cos(a) * d}px;--y:${Math.sin(a) * d}px;--r:${k % 2 ? 160 : -200}deg;animation-delay:${(k % 3) * 0.03}s"`);
+    }
+    b.innerHTML = html;
+    stage.appendChild(b);
+    setTimeout(() => b.remove(), 900);
+  }
+
+  /* ---- render のあとに演出を足す ---- */
+  const baseRender = render;
+  const baseCelebrate = celebrate;
+  celebrate = () => {};            // 紙吹雪は称号のハンコのあとに出す
+  let prevSeason = -1;
+  render = function () {
+    const g = state.game;
+    const before = {
+      screen: state.screen,
+      season: g ? g.seasonIdx : -1,
+      done: g && g.plan ? g.plan.map(plotDone) : null,
+      ready: g && g.plan ? (g.plan.every(plotDone) && planCost(ctxOf(g), g.plan) <= g.money) : false,
+      meters: [...document.querySelectorAll('.side .meter .mbar i')].map((i) => i.style.width),
+      money: parseFloat((document.querySelector('.side .money') || {}).textContent),
+    };
+    baseRender();
+    after(before);
+  };
+
+  function after(b) {
+    const g = state.game;
+    addSoundToggle();
+
+    // サイドパネル：バーを前の長さから伸ばし、資金をカウントアップ
+    const bars = [...document.querySelectorAll('.side .meter .mbar i')];
+    if (bars.length && b.meters.length === bars.length) {
+      bars.forEach((el, k) => { const to = el.style.width; if (to !== b.meters[k]) { el.style.width = b.meters[k]; void el.offsetWidth; el.style.width = to; } });
+    }
+    const mEl = document.querySelector('.side .money');
+    if (mEl && !Number.isNaN(b.money)) {
+      const to = parseFloat(mEl.textContent);
+      if (to !== b.money) { mEl.classList.add('tick'); countUp(mEl.firstChild, b.money, to, 600, fmt); }
+    }
+
+    if (state.screen === 'plan' && g) {
+      // 季節が変わったらワイプ
+      const key = `wipe-${g.seed}-${state.round}-${g.seasonIdx}`;
+      if (!J.seen.has(key)) {
+        J.seen.add(key);
+        if (!RM) {
+          const s = CONFIG.seasons[g.seasonIdx];
+          const w = document.createElement('div');
+          w.className = 'season-wipe';
+          w.innerHTML = `<div class="band">${s.icon}<span>${s.name}</span></div>`;
+          document.body.appendChild(w);
+          setTimeout(() => w.remove(), 950);
+        }
+        SE.play('whoosh');
+      }
+      // 押したボタンがはねる
+      if (J.pick) {
+        const { i, f, v } = J.pick;
+        const el = document.querySelector(`.opt[data-act="pick"][data-i="${i}"][data-f="${f}"][data-v="${v}"]`);
+        if (el && !RM) el.classList.add('pop');
+        J.pick = null;
+      }
+      // 区画が5/5になった瞬間にハンコ
+      if (b.screen === 'plan' && b.season === g.seasonIdx && b.done) {
+        const plots = document.querySelectorAll('.plot');
+        g.plan.forEach((p, i) => {
+          if (p.crop && !b.done[i] && plotDone(p)) {
+            const pr = plots[i] && plots[i].querySelector('.prog');
+            if (pr) pr.classList.add('stamp');
+            if (plots[i]) plots[i].classList.add('done-flash');
+            SE.play('ting', 110);
+          }
+        });
+        const ready = g.plan.every(plotDone) && planCost(ctxOf(g), g.plan) <= g.money;
+        if (ready && !b.ready) SE.play('ready', 260);
+      }
+    }
+
+    if (state.screen === 'event' && g) {
+      const key = `ev-${g.seed}-${state.round}-${g.history.length}`;
+      if (!g.revealed && !J.seen.has(key + 'f')) { J.seen.add(key + 'f'); SE.play('flip', 300); }
+      if (g.revealed && !J.seen.has(key)) {
+        J.seen.add(key);
+        const r = g.current;
+        const v = verdict(r);
+        const stage = document.querySelector('.card-stage');
+        if (stage) {
+          const tag = document.createElement('div');
+          tag.className = `verdict ${v.k}`; tag.textContent = v.t;
+          stage.appendChild(tag);
+          burst(stage, v.k);
+          if (v.k === 'bad' && !RM) stage.classList.add('shake');
+        }
+        SE.play(v.k === 'bad' ? 'bad' : v.k);
+        // 収量をバーで見せて、0からカウントアップ
+        document.querySelectorAll('.myfarm > div').forEach((row, k) => {
+          const sp = [...row.querySelectorAll('.small.muted')].find((x) => x.textContent.startsWith('収量'));
+          if (!sp) return;
+          const val = parseInt(sp.textContent.replace(/\D/g, ''), 10);
+          sp.innerHTML = `収量 <span class="yv">0</span>% <span class="yb"><i class="${val < 60 ? 'bad' : val < 100 ? 'low' : ''}"></i></span>`;
+          const bar = sp.querySelector('.yb i');
+          setTimeout(() => {
+            bar.style.width = `${Math.min(100, val / 1.3)}%`;
+            countUp(sp.querySelector('.yv').firstChild, 0, val, 500, String);
+          }, 180 + k * 120);
+        });
+      } else if (g.revealed) {
+        const r = g.current, v = verdict(r), stage = document.querySelector('.card-stage');
+        if (stage) { const tag = document.createElement('div'); tag.className = `verdict ${v.k}`; tag.style.animation = 'none'; tag.textContent = v.t; stage.appendChild(tag); }
+      }
+    }
+
+    if (state.screen === 'result' && g) {
+      const key = `res-${g.seed}-${state.round}-${g.history.length}`;
+      if (!J.seen.has(key)) {
+        J.seen.add(key);
+        const v = document.querySelector('.summary .box .v');
+        const m = v && v.textContent.match(/([\d.]+)\s*→\s*([\d.]+)/);
+        if (m) {
+          v.innerHTML = `${m[1]} → <span class="to">${m[1]}</span>`;
+          v.classList.add('tick');
+          countUp(v.querySelector('.to').firstChild, parseFloat(m[1]), parseFloat(m[2]), 700, fmt, () => SE.play('count'));
+        }
+      }
+    }
+
+    if (state.screen === 'final' && g) {
+      const key = `fin-${g.seed}-${state.round}`;
+      const tot = document.querySelector('.panel.total');
+      if (!J.seen.has(key) && tot) {
+        J.seen.add(key);
+        finalIntro(tot);
+      } else if (tot) {
+        baseCelebrate();
+      }
+    }
+  }
+
+  function finalIntro(tot) {
+    const t = tot.querySelector('.t');
+    const rank = tot.querySelector('.rank');
+    const target = parseInt(t.firstChild.nodeValue, 10);
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      document.removeEventListener('pointerdown', finish, true);
+      t.firstChild.nodeValue = String(target);
+      tot.classList.remove('intro');
+      if (!RM) { rank.classList.add('slam'); setTimeout(() => tot.classList.add('thump'), 140); }
+      SE.play('fanfare');
+      setTimeout(baseCelebrate, 250);
+    };
+    if (RM) { finish(); return; }
+    tot.classList.add('intro');
+    t.firstChild.nodeValue = '0';
+    document.addEventListener('pointerdown', finish, true);   // タップでとばせる
+    setTimeout(() => {
+      let n = 0;
+      countUp(t.firstChild, 0, target, 1100, String, () => { if (++n % 6 === 0) SE.play('count'); });
+      setTimeout(finish, 1250);
+    }, 250);
+  }
+
+  // 効果音のオン・オフ（タイトルとサイドパネル）
+  function addSoundToggle() {
+    const label = `効果音：${SE.on ? 'あり' : 'なし'}`;
+    if (state.screen === 'title') {
+      const st = document.querySelector('[data-act=start]');
+      if (st) st.classList.toggle('ready', !!state.name.trim());
+      const btns = document.querySelector('.btns');
+      if (btns && !document.querySelector('[data-snd]')) btns.insertAdjacentHTML('afterend', `<div class="center"><button class="mini snd" data-snd aria-pressed="${SE.on}">${label}</button></div>`);
+    }
+    const side = document.querySelector('.side');
+    if (side && !side.querySelector('[data-snd]') && innerWidth >= 900) side.insertAdjacentHTML('beforeend', `<button class="mini snd" data-snd aria-pressed="${SE.on}">${label}</button>`);
+  }
+
+  // 名前を入れたら「はじめる」が起きあがる
+  document.addEventListener('input', (e) => {
+    if (e.target.id !== 'name') return;
+    const s = document.querySelector('[data-act=start]');
+    if (s) s.classList.toggle('ready', !!e.target.value.trim());
+  });
+
+  render();
+})();
 </script>
 </body>
 </html>
