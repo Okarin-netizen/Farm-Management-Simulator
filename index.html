@@ -121,12 +121,9 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .stack > * + * { margin-top: 12px; }
 
 /* title */
-.hero { text-align: center; padding: 6px 0 8px; }
-.hero h1 { margin-top: 2px; }
 .pic { display: inline-block; width: 1.2em; height: 1.2em; vertical-align: -0.24em; flex: none; }
 .pics { display: inline-flex; gap: 0.3em; vertical-align: middle; }
 .pics .pic { vertical-align: 0; }
-.hero .icons { font-size: 40px; letter-spacing: 6px; }
 .field { display: block; margin: 12px 0; }
 .field input {
   display: block; width: 100%; min-height: var(--tap); font-size: 20px; padding: 8px 12px;
@@ -400,12 +397,29 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 .side .money.tick, .summary .v.tick { animation: tick .5s var(--pop); }
 @keyframes tick { 0% { transform: scale(1.25); } 100% { transform: scale(1); } }
 
-/* タイトル：作物が順番にはねる */
-.hero .icons .pic { animation: hop 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
-.hero .icons .pic:nth-child(2) { animation-delay: .15s; } .hero .icons .pic:nth-child(3) { animation-delay: .3s; }
-.hero .icons .pic:nth-child(4) { animation-delay: .45s; } .hero .icons .pic:nth-child(5) { animation-delay: .6s; }
-@keyframes hop { 0%, 30%, 100% { transform: translateY(0) scale(1); } 8% { transform: translateY(0) scale(1.15, .85); } 17% { transform: translateY(-16px) scale(.92, 1.1); } 26% { transform: translateY(0) scale(1.1, .9); } }
-.hero h1 { font-size: 40px; letter-spacing: .04em; text-shadow: 0 3px 0 #fff, 0 6px 0 var(--line); }
+/* タイトル画面（ロゴ・畑の絵・スタート） */
+.tscreen { max-width: 760px; min-height: 100svh; margin: 0 auto; padding: 14px 16px 24px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 10px; }
+.tlogo { margin: 0; line-height: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.tlogo .t1 { font-size: clamp(48px, min(15vw, 12svh), 104px); letter-spacing: .06em; color: var(--ink); text-shadow: 0 4px 0 #fff, 0 8px 0 var(--line); padding-left: .06em; }
+.tlogo .t2 { font-size: clamp(22px, 5.4vw, 36px); letter-spacing: .12em; color: #fff; background: var(--env); padding: 8px 26px 10px calc(26px + .12em); border-radius: 999px; box-shadow: 0 4px 0 #1d5a20; }
+.ttag { font-size: clamp(17px, 3.6vw, 21px); color: var(--muted); margin-top: 6px; }
+.ttag .pics { font-size: 1.15em; vertical-align: -0.18em; }
+.ttag b.p { color: var(--profit); } .ttag b.e { color: var(--env); } .ttag b.r { color: var(--region); }
+.tscene { width: min(100%, calc(36svh * 640 / 240)); height: auto; display: block; border-radius: 18px; border: 1px solid var(--line); box-shadow: 0 6px 0 var(--line); }
+.tscreen .btns { margin: 10px 0 0; }
+.tscreen .btn.go { font-size: 26px; min-width: 240px; min-height: 68px; letter-spacing: .1em; }
+.tscreen .credit { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.tscene .sway { animation: sway 3.2s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.tscene .sway:nth-of-type(2n) { animation-delay: -1.6s; }
+@keyframes sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+.tscene .sun { animation: spin 24s linear infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tscene .snow circle { animation: fall 4s linear infinite; }
+.tscene .snow circle:nth-child(2n) { animation-delay: -2s; } .tscene .snow circle:nth-child(3n) { animation-delay: -1s; }
+@keyframes fall { 0% { transform: translateY(-10px); opacity: 0; } 15%, 85% { opacity: 1; } 100% { transform: translateY(40px); opacity: 0; } }
+.setup-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.setup-head h2 { margin: 0; }
+
 .snd { display: inline-flex; align-items: center; gap: 6px; }
 .side .snd { align-self: flex-start; min-height: 36px; font-size: 13px; padding: 2px 12px; margin-top: auto; background: transparent; color: #c3cbd6; border-color: #59604f; }
 
@@ -419,7 +433,7 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
   .season-wipe, .burst { display: none; }
-  .hero .icons .pic, .foot .btn:not(.off), .seg .opt.pop, .prog.stamp, .card-stage.shake, .verdict, .total .rank.slam { animation: none !important; }
+  .tscene .sway, .tscene .sun, .tscene .snow circle, .foot .btn:not(.off), .seg .opt.pop, .prog.stamp, .card-stage.shake, .verdict, .total .rank.slam { animation: none !important; }
 }
 </style>
 </head>
@@ -1009,13 +1023,64 @@ function sidePanel() {
 
 const screens = {};
 
+/* タイトルの絵：春→夏→秋→冬の空と丘、3つの畑、ハウス、家（数値には関係しない） */
+function titleScene() {
+  const plotX = [150, 268, 386];
+  const crops = ['spinach', 'tomato', 'cabbage'];
+  const tuft = (x, y, c) => `<g class="sway"><ellipse cx="${x - 4}" cy="${y}" rx="3.4" ry="7" fill="${c}" transform="rotate(-25 ${x - 4} ${y})"/><ellipse cx="${x + 4}" cy="${y}" rx="3.4" ry="7" fill="${c}" transform="rotate(25 ${x + 4} ${y})"/><ellipse cx="${x}" cy="${y - 3}" rx="3.4" ry="8" fill="${c}"/></g>`;
+  const plant = [
+    (x, y) => tuft(x, y, '#4a8a26'),
+    (x, y) => `<g class="sway">${tuft(x, y - 6, '#3f7a20')}<circle cx="${x - 5}" cy="${y - 2}" r="3.6" fill="#d8402f"/><circle cx="${x + 5}" cy="${y + 1}" r="3.6" fill="#d8402f"/></g>`,
+    (x, y) => `<circle cx="${x}" cy="${y}" r="8" fill="#9cc96b"/><path d="M${x - 6} ${y - 2}Q${x} ${y + 4} ${x + 6} ${y - 2}" fill="none" stroke="#6f9f45" stroke-width="1.6"/>`,
+  ];
+  const plots = plotX.map((x, k) => {
+    let rows = '';
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) rows += plant[k](x + 18 + c * 24, 178 + r * 22);
+    return `<rect x="${x}" y="160" width="104" height="58" rx="8" fill="#7a5532"/>
+      <path d="M${x + 6} 182H${x + 98}M${x + 6} 204H${x + 98}" stroke="#5f3f22" stroke-width="3" stroke-linecap="round"/>${rows}
+      <line x1="${x + 52}" y1="150" x2="${x + 52}" y2="164" stroke="#5f3f22" stroke-width="3"/>${pic(crops[k], `x="${x + 38}" y="122" width="28" height="28"`)}`;
+  }).join('');
+  const seasons = ['spring', 'summer', 'autumn', 'winter'].map((id, k) => pic(id, `x="${66 + k * 160}" y="12" width="28" height="28"`)).join('');
+  return `<svg class="tscene" viewBox="0 0 640 240" role="img" aria-label="春・夏・秋・冬の畑の絵">
+    <defs>
+      <linearGradient id="tsky"><stop offset=".18" stop-color="#f9dfe7"/><stop offset=".32" stop-color="#fcefc8"/><stop offset=".5" stop-color="#fcefc8"/><stop offset=".62" stop-color="#f6dcc6"/><stop offset=".78" stop-color="#f6dcc6"/><stop offset=".88" stop-color="#dfe9f5"/></linearGradient>
+      <linearGradient id="thill"><stop offset=".2" stop-color="#b5d68a"/><stop offset=".5" stop-color="#93c262"/><stop offset=".68" stop-color="#cdb15e"/><stop offset=".86" stop-color="#eef2f5"/></linearGradient>
+      <clipPath id="tclip"><rect width="640" height="240" rx="18"/></clipPath>
+    </defs>
+    <g clip-path="url(#tclip)">
+      <rect width="640" height="240" fill="url(#tsky)"/>
+      ${seasons}
+      <g class="sun"><circle cx="268" cy="72" r="18" fill="#f6b73c"/><g stroke="#f6b73c" stroke-width="4" stroke-linecap="round">${Array.from({ length: 8 }, (_, i) => { const a = i * Math.PI / 4; return `<line x1="${(268 + Math.cos(a) * 25).toFixed(1)}" y1="${(72 + Math.sin(a) * 25).toFixed(1)}" x2="${(268 + Math.cos(a) * 32).toFixed(1)}" y2="${(72 + Math.sin(a) * 32).toFixed(1)}"/>`; }).join('')}</g></g>
+      <g fill="#fff" opacity=".9"><ellipse cx="400" cy="62" rx="26" ry="10"/><ellipse cx="414" cy="54" rx="16" ry="11"/></g>
+      <path d="M0 150Q90 104 190 132T380 126T560 116T640 124V240H0Z" fill="url(#thill)"/>
+      <rect x="122" y="104" width="7" height="34" fill="#7a5532"/><g fill="#f2a7bd"><circle cx="125" cy="96" r="16"/><circle cx="111" cy="106" r="12"/><circle cx="140" cy="106" r="12"/></g><g fill="#fff"><circle cx="118" cy="92" r="2.4"/><circle cx="133" cy="101" r="2.4"/><circle cx="114" cy="108" r="2"/></g>
+      <rect x="458" y="96" width="7" height="34" fill="#7a5532"/><g fill="#e08a3c"><circle cx="461" cy="90" r="15"/><circle cx="448" cy="100" r="11"/></g><circle cx="474" cy="100" r="11" fill="#c8642a"/>
+      <rect x="0" y="152" width="640" height="88" fill="#a8c97e"/>
+      <rect x="0" y="152" width="640" height="88" fill="url(#thill)" opacity=".55"/>
+      <g><rect x="30" y="146" width="80" height="58" fill="#fffdf8" stroke="#5f3f22" stroke-width="2"/><path d="M22 150L70 112L118 150Z" fill="#b3261e" stroke="#7d1a14" stroke-width="2" stroke-linejoin="round"/><rect x="40" y="160" width="20" height="16" fill="#cfe3f5" stroke="#5f3f22" stroke-width="2"/><rect x="76" y="170" width="20" height="34" fill="#a35f00" stroke="#5f3f22" stroke-width="2"/></g>
+      ${plots}
+      <g><path d="M512 220V176A58 44 0 0 1 628 176V220Z" fill="#f3f8fd" stroke="#8ea8c3" stroke-width="2.5"/><path d="M541 141V220M570 132V220M599 141V220M512 186H628" stroke="#b7c9dc" stroke-width="2"/>
+        <g fill="#d8402f"><circle cx="528" cy="206" r="4"/><circle cx="556" cy="208" r="4"/><circle cx="586" cy="206" r="4"/><circle cx="614" cy="208" r="4"/></g>${pic('house', `x="556" y="146" width="28" height="28"`)}</g>
+      <g class="snow" fill="#fff">${[[500, 60], [540, 40], [580, 70], [612, 48], [470, 90], [630, 96], [560, 104]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3"/>`).join('')}</g>
+    </g>
+  </svg>`;
+}
+
 screens.title = () => `
-  <div class="wrap" style="max-width:720px">
-    <div class="hero">
-      <div class="icons">${pics('spinach', 'potato', 'cabbage', 'tomato', 'strawberry')}</div>
-      <h1>農家経営シミュレーション</h1>
-      <div class="muted">1年間農家を経営し、「利益」「環境」「地域」のバランスがよい農業を目指そう</div>
+  <div class="tscreen">
+    <h1 class="tlogo"><span class="t1">農家経営</span><span class="t2">シミュレーション</span></h1>
+    <div class="ttag">1年間、農家になって<b class="p">利益</b>・<b class="e">環境</b>・<b class="r">地域</b>のバランスがよい農業を目指そう</div>
+    ${titleScene()}
+    <div class="btns">
+      <button class="btn go" data-act="toSetup">スタート</button>
+      <button class="btn sub" data-act="howto">遊び方</button>
     </div>
+    <div class="credit">中学校 技術分野「生物育成の技術」</div>
+  </div>`;
+
+screens.setup = () => `
+  <div class="wrap" style="max-width:720px">
+    <div class="setup-head"><h2>プレイのじゅんび</h2><button class="mini" data-act="toTitle">タイトルへもどる</button></div>
     <ol class="rules panel">
       <li>春・夏・秋・冬の4回、3つの畑に<b>何を・どうやって育てて・どこに売るか</b>を決めます。</li>
       <li>季節の終わりに<b>イベントカード</b>（台風・害虫・値段の変化など）を1枚引き、売上が決まります。</li>
@@ -1400,6 +1465,7 @@ const actions = {
   howto: () => { state.howtoPage = 0; go('howto'); },
   howtoNext: () => { state.howtoPage++; render(); },
   toTitle: () => go('title'),
+  toSetup: () => go('setup'),
   start: () => {
     if (!state.name.trim()) { toast('名前（出席番号）を入れてから、はじめるをおしてください。'); const n = document.getElementById('name'); if (n) n.focus(); return; }
     const g = state.game = newGame(); g.plan = defaultPlan(g); go('plan');
@@ -1453,7 +1519,7 @@ const actions = {
     const sc = finalScore(g.money, g.env, g.region);
     state.prev = { seed: g.seed, round: state.round, sc, ex: expectedYear(g.history) };
     state.replay = el.dataset.v === 'same';
-    state.round = 2; state.game = null; go('title');
+    state.round = 2; state.game = null; go('setup');
   },
   replayOff: () => { state.replay = false; render(); },
 };
@@ -1751,7 +1817,7 @@ else render();
     fx.shown.add(key);
     return true;
   }
-  const ACTION_SOUND = { pick: 'pick', copyLeft: 'pick', decide: 'open', draw: 'shuffle', skipFlip: null, start: 'open', toResult: 'tap' };
+  const ACTION_SOUND = { pick: 'pick', copyLeft: 'pick', decide: 'open', draw: 'shuffle', skipFlip: null, start: 'open', toSetup: 'open', toResult: 'tap' };
   document.addEventListener('click', (e) => {
     const soundToggle = e.target.closest('[data-snd]');
     if (soundToggle) { SE.set(!SE.on); SE.unlock(); SE.play('pick'); render(); return; }
@@ -1964,9 +2030,9 @@ else render();
   // 効果音のオン・オフ（タイトルと、横長画面のサイドパネル）
   function addSoundToggle() {
     const button = `<button class="mini snd" data-snd aria-pressed="${SE.on}">効果音：${SE.on ? 'あり' : 'なし'}</button>`;
+    const start = document.querySelector('[data-act=start]');
+    if (start) start.classList.toggle('ready', !!state.name.trim());
     if (state.screen === 'title') {
-      const start = document.querySelector('[data-act=start]');
-      if (start) start.classList.toggle('ready', !!state.name.trim());
       const btns = document.querySelector('.btns');
       if (btns && !document.querySelector('[data-snd]')) btns.insertAdjacentHTML('afterend', `<div class="center">${button}</div>`);
     }
