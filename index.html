@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>農家経営シミュレーション</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root {
   /* 「畑ノート」: 生成りの紙と土の色。季節の色は body[data-season] で切り替える */
@@ -42,7 +40,8 @@
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font-family: "BIZ UDPGothic", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Noto Sans CJK JP", "Meiryo", sans-serif;
+  /* 端末に入っているフォントだけを使う（外部への通信をしない）。Chromebook は Noto Sans CJK JP */
+  font-family: "Noto Sans JP", "Noto Sans CJK JP", "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
   font-size: 18px; line-height: 1.55;
   -webkit-tap-highlight-color: transparent;
 }

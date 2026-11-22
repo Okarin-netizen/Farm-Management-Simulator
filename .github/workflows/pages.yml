@@ -1,5 +1,8 @@
 # GitHub Pages に index.html を公開する
 # （Settings → Pages の Source を「GitHub Actions」にしているときに使われます）
+# アップロード（build）と公開（deploy）を別のジョブに分ける。
+# 同じジョブでアップロード直後に公開すると、GitHub 側でアップロードが見えるまでに間があり、
+# 「No artifacts named "github-pages"」で失敗することがある（actions/deploy-pages#451）。
 name: Deploy to GitHub Pages
 
 on:
@@ -14,16 +17,13 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Collect site files
         run: |
           mkdir _site
@@ -33,5 +33,13 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
