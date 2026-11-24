@@ -88,11 +88,19 @@ h3 { font-size: 19px; margin: 0 0 6px; }
 .meter .mbar i { display: block; height: 10px; }
 .meter .md { font-size: 13px; color: #c3cbd6; }
 .side .houses { font-size: 14px; color: #c3cbd6; }
+/* プレイ中の「タイトルへ」（右下。横長ではサイドパネルのいちばん下） */
+.side-foot { margin-top: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.side .quit { min-height: 40px; font-size: 14px; padding: 2px 14px; background: transparent; color: #fff; border-color: #8a9280; }
+.sheet.ask p { margin: 4px 0; font-size: 17px; }
+.resume-note { font-size: 16px; color: var(--muted); margin-top: 6px; }
+.tscreen .resume-note + .btns { margin-top: 2px; }
 @media (max-width: 899px) {
   .shell { flex-direction: column; }
+  .side-foot { margin-top: 0; }
+  .side .quit { min-height: 36px; font-size: 13px; padding: 2px 10px; }
   .side {
     width: auto; height: auto; z-index: 10; padding: 8px 14px; overflow: visible;
-    display: grid; grid-template-columns: auto auto 1fr 1fr 1fr; gap: 4px 14px; align-items: center;
+    display: grid; grid-template-columns: auto auto 1fr 1fr 1fr auto; gap: 4px 14px; align-items: center;
   }
   .side .lbl, .side .sub, .side .houses, .meter .md { display: none; }
   .side .money { font-size: 22px; }
@@ -420,7 +428,7 @@ td.num, th.num { text-align: right; white-space: nowrap; }
 .setup-head h2 { margin: 0; }
 
 .snd { display: inline-flex; align-items: center; gap: 6px; }
-.side .snd { align-self: flex-start; min-height: 36px; font-size: 13px; padding: 2px 12px; margin-top: auto; background: transparent; color: #c3cbd6; border-color: #59604f; }
+.side .snd { align-self: flex-start; min-height: 36px; font-size: 13px; padding: 2px 12px; background: transparent; color: #c3cbd6; border-color: #59604f; }
 
 /* 最終画面：点数がカウントアップ → 称号がハンコで決まる */
 .total.intro .rank, .total.intro .split, .total.intro .vs { visibility: hidden; }
@@ -621,12 +629,14 @@ const CONFIG = {
  *   （効果音のノイズだけは結果に関係しないので Math.random を使う）
  * ========================================================================= */
 function mulberry32(a) {
-  return function () {
+  const next = function () {
     a |= 0; a = (a + 0x6D2B79F5) | 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+  next.state = () => a | 0;   // 「つづきから」の保存用。mulberry32(next.state()) で同じ続きの乱数になる
+  return next;
 }
 function hashString(s) {  // FNV-1a
   let h = 0x811c9dc5;
@@ -897,8 +907,41 @@ function makeComments(history, sc) {
  * ========================================================================= */
 const params = new URLSearchParams(location.search);
 const app = document.getElementById('app');
-// prev: 前回の結果（ページを開いている間だけ。保存はしない）  replay: 前回と同じ1年で遊ぶか
-const state = { screen: 'title', name: '', round: 1, code: '', howtoPage: 0, game: null, prev: null, replay: false, confirm: false };
+// prev: 前回の結果（とちゅうのゲームといっしょに保存する）  replay: 前回と同じ1年で遊ぶか
+// ask: 確認の小窓（'quit' タイトルへもどる／'restart' はじめから）  resumeTo: 「つづきから」で戻る画面
+// ゲームのとちゅう経過は、この端末のブラウザ（localStorage）に保存する（下の「つづきからの保存」）
+const state = { screen: 'title', name: '', round: 1, code: '', howtoPage: 0, game: null, prev: null, replay: false, confirm: false, ask: null, resumeTo: null };
+
+/* ---- つづきからの保存 ----
+ * とちゅうのゲームだけを、この端末のブラウザ（localStorage）に保存する。外には送らない。
+ * 最終画面まで進んだとき・「はじめから」にしたときに消す。保存できない端末では、ページを開いている間だけ続きから遊べる。 */
+const SAVE_KEY = 'farm-sim-save-v1';
+const NO_SAVE = !!(params.get('test') || params.get('sim'));   // 検算・試算のページでは読み書きしない
+let saveOk = false;   // 保存できているか（できていれば、タブを閉じるときの確認を出さない）
+function saveGame() {
+  if (NO_SAVE) return;
+  const g = state.game;
+  const at = ['plan', 'event', 'result'].includes(state.screen) ? state.screen : state.resumeTo;
+  try {
+    if (!g || g.finishedAt || !at) { localStorage.removeItem(SAVE_KEY); saveOk = false; return; }
+    const game = { ...g, rngEv: g.rngEv.state(), rngMisc: g.rngMisc.state() };
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 1, savedAt: Date.now(), at, name: state.name, round: state.round,
+      code: state.code, replay: state.replay, prev: state.prev, game }));
+    saveOk = true;
+  } catch (e) { saveOk = false; }
+}
+function loadGame() {
+  if (NO_SAVE) return;
+  try {
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+    if (!d || d.v !== 1 || !d.game || !['plan', 'event', 'result'].includes(d.at)) return;
+    const g = { ...d.game, rngEv: mulberry32(d.game.rngEv), rngMisc: mulberry32(d.game.rngMisc), finishedAt: null };
+    Object.assign(state, { name: d.name || '', round: d.round || 1, code: d.code || '', replay: !!d.replay, prev: d.prev || null,
+      game: g, resumeTo: d.at, screen: 'title' });
+    saveOk = true;
+  } catch (e) { try { localStorage.removeItem(SAVE_KEY); } catch (e2) { /* 保存できない端末 */ } }
+}
+loadGame();
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // C4: ふりがな。中1で読みにくい言葉に、画面に出すときだけ付ける（プレーンな文字列にだけ使う）
@@ -1017,6 +1060,7 @@ function sidePanel() {
       <div class="mbar"><i style="width:${m.v}%;background:${m.color}"></i></div>
       <div class="md">${m.d}</div></div>`).join('')}
     ${houseN ? `<div class="houses">${pic('house')} ハウス ${houseN}棟</div>` : ''}
+    <div class="side-foot"><button class="mini quit" data-act="quitAsk">タイトルへ</button></div>
   </aside>`;
 }
 
@@ -1065,15 +1109,44 @@ function titleScene() {
   </svg>`;
 }
 
+// とちゅうのゲームがあるか（最終画面まで進んだゲームは「つづき」にしない）
+const hasSuspended = () => !!(state.game && !state.game.finishedAt && state.resumeTo);
+function titleButtons() {
+  if (!hasSuspended()) return `<div class="btns">
+      <button class="btn go" data-act="toSetup">はじめから</button>
+      <button class="btn sub off" data-act="resume" data-reason="まだ続きはありません。「はじめから」で始めてください。" aria-disabled="true">つづきから</button>
+      <button class="btn sub" data-act="howto">遊び方</button>
+    </div>`;
+  const g = state.game;
+  const where = { plan: '計画', event: 'イベント', result: '結果' }[state.resumeTo];
+  return `<div class="resume-note">${esc(state.name)}さん・${state.round}回目・<b>${CONFIG.seasons[g.seasonIdx].name}の${where}</b>のとちゅう（資金 ${fmt(g.money)}万円）</div>
+    <div class="btns">
+      <button class="btn go" data-act="resume">つづきから</button>
+      <button class="btn sub" data-act="restartAsk">はじめから</button>
+      <button class="btn sub" data-act="howto">遊び方</button>
+    </div>`;
+}
+// タイトルへもどる／はじめから の確認。まちがって押しても、ここで取り消せる
+function askSheet() {
+  const quit = state.ask === 'quit';
+  return `<div class="sheet-bg"><div class="sheet ask" role="dialog" aria-modal="true" aria-labelledby="ask-h">
+    <h2 id="ask-h">${quit ? 'タイトルにもどりますか？' : 'はじめからにしますか？'}</h2>
+    <p>${quit ? 'ここまでの内容はのこります。タイトルの「つづきから」で、この続きから遊べます。'
+      : `とちゅうのゲーム（${CONFIG.seasons[state.game.seasonIdx].name}まで）は消えて、もとにもどせません。`}</p>
+    ${quit ? `<p class="small muted">${saveOk ? '※ この端末に保存してあるので、ページを閉じても続きから遊べます。'
+      : '※ この端末では保存できないため、ページを閉じたり再読みこみしたりすると、続きは消えます。'}</p>` : ''}
+    <div class="btns">${quit
+      ? '<button class="btn" data-act="quit">タイトルへもどる</button><button class="btn sub" data-act="askOff">ゲームにもどる</button>'
+      : '<button class="btn" data-act="restart">はじめからにする</button><button class="btn sub" data-act="askOff">やめる</button>'}</div>
+  </div></div>`;
+}
+
 screens.title = () => `
   <div class="tscreen">
     <h1 class="tlogo"><span class="t1">農家経営</span><span class="t2">シミュレーション</span></h1>
     <div class="ttag">1年間、農家になって<b class="p">利益</b>・<b class="e">環境</b>・<b class="r">地域</b>のバランスがよい農業を目指そう</div>
     ${titleScene()}
-    <div class="btns">
-      <button class="btn go" data-act="toSetup">スタート</button>
-      <button class="btn sub" data-act="howto">遊び方</button>
-    </div>
+    ${titleButtons()}
     <div class="credit">中学校 技術分野「生物育成の技術」</div>
   </div>`;
 
@@ -1443,7 +1516,8 @@ function render() {
   document.body.classList.toggle('final-page', state.screen === 'final');
   document.body.dataset.season = state.game && state.screen !== 'final' ? CONFIG.seasons[Math.min(state.game.seasonIdx, LAST_SEASON)].id : '';
   const inGame = state.game && ['plan', 'event', 'result'].includes(state.screen);
-  app.innerHTML = inGame ? `<div class="shell">${sidePanel()}<main class="main">${fn()}</main></div>` : fn();
+  app.innerHTML = (inGame ? `<div class="shell">${sidePanel()}<main class="main">${fn()}</main></div>` : fn()) + (state.ask ? askSheet() : '');
+  saveGame();
   if (state.screen === 'final') celebrate();
   if (state.screen === 'event' && !state.game.revealed) {
     clearTimeout(flipTimer);
@@ -1521,6 +1595,13 @@ const actions = {
     state.round = 2; state.game = null; go('setup');
   },
   replayOff: () => { state.replay = false; render(); },
+  // プレイ中 →「タイトルへ」→ 確認 → タイトル。ゲームはそのまま持っておき、「つづきから」で同じ画面にもどる
+  quitAsk: () => { state.ask = 'quit'; render(); },
+  askOff: () => { state.ask = null; render(); },
+  quit: () => { state.ask = null; state.confirm = false; state.resumeTo = state.screen; go('title'); },
+  resume: () => { if (!hasSuspended()) return; const to = state.resumeTo; state.resumeTo = null; go(to); },
+  restartAsk: () => { state.ask = 'restart'; render(); },
+  restart: () => { state.ask = null; state.game = null; state.resumeTo = null; go('setup'); },
 };
 
 document.addEventListener('click', (e) => {
@@ -1535,11 +1616,12 @@ document.addEventListener('input', (e) => {
   if (e.target.id === 'code') state.code = e.target.value;
 });
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.ask) { state.ask = null; render(); return; }
   if (e.key === 'Escape' && state.confirm) { state.confirm = false; render(); }
 });
 // 遊んでいる途中でタブを閉じそうになったら確認する（returnValue は古いブラウザ向け）
 window.addEventListener('beforeunload', (e) => {
-  if (state.game && state.screen !== 'final') { e.preventDefault(); e.returnValue = ''; }
+  if (state.game && state.screen !== 'final' && !saveOk) { e.preventDefault(); e.returnValue = ''; }
 });
 
 /* =========================================================================
@@ -1816,7 +1898,7 @@ else render();
     fx.shown.add(key);
     return true;
   }
-  const ACTION_SOUND = { pick: 'pick', copyLeft: 'pick', decide: 'open', draw: 'shuffle', skipFlip: null, start: 'open', toSetup: 'open', toResult: 'tap' };
+  const ACTION_SOUND = { pick: 'pick', copyLeft: 'pick', decide: 'open', draw: 'shuffle', skipFlip: null, start: 'open', toSetup: 'open', toResult: 'tap', resume: 'open', quitAsk: 'open', restartAsk: 'open' };
   document.addEventListener('click', (e) => {
     const soundToggle = e.target.closest('[data-snd]');
     if (soundToggle) { SE.set(!SE.on); SE.unlock(); SE.play('pick'); render(); return; }
@@ -2036,7 +2118,7 @@ else render();
       if (btns && !document.querySelector('[data-snd]')) btns.insertAdjacentHTML('afterend', `<div class="center">${button}</div>`);
     }
     const side = document.querySelector('.side');
-    if (side && !side.querySelector('[data-snd]') && innerWidth >= 900) side.insertAdjacentHTML('beforeend', button);
+    if (side && !side.querySelector('[data-snd]') && innerWidth >= 900) (side.querySelector('.side-foot') || side).insertAdjacentHTML('afterbegin', button);
   }
 
   // 名前を入れたら「はじめる」が起きあがる
